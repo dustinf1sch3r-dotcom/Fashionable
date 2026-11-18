@@ -94,8 +94,8 @@ All in `src/core`. Verify with `npm run check`.
   overlay toggle that draws landmarks and anchor boxes.
 - ☑ **M4-2 Mannequin component.** `ui/Mannequin.tsx` per TRY_ON §9; component test that placements
   map to the right styles; `/dev/mannequin` route rendering the fixture closet.
-- ☐ **M4-3 Fit editor.** Select, drag, scale, rotate; save to item or outfit; reset (TRY_ON §6).
-- ☐ **M4-4 Mix screen.** One swipeable row per slot under/over the mannequin, lock and shuffle per
+- ☑ **M4-3 Fit editor.** Select, drag, scale, rotate; save to item or outfit; reset (TRY_ON §6).
+- ☑ **M4-4 Mix screen.** One swipeable row per slot under/over the mannequin, lock and shuffle per
   slot, live harmony meter from `scoreOutfit`, save outfit. Depends on M4-2, M1-4.
 
 ## M5 — Outfit generator

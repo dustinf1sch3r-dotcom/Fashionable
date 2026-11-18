@@ -1,8 +1,16 @@
-import { memo, useMemo, useState } from 'react';
-import { Image, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
-import type { BodyTemplate, ID, Item, Outfit, Placement } from '@/core/model/types';
+import { memo, useEffect, useMemo, useState } from 'react';
+import {
+  Image,
+  Pressable,
+  StyleSheet,
+  View,
+  type LayoutChangeEvent,
+  type ViewStyle,
+} from 'react-native';
+import type { BodyTemplate, FitAdjust, ID, Item, Outfit, Placement } from '@/core/model/types';
 import { placeOutfit } from '@/core/tryon/place';
 import { colors, radius } from '@/ui/theme';
+import { createFitResponder } from './fitResponder';
 import { DebugOverlay, Silhouette } from './Silhouette';
 
 /** Mannequin canvas in units (docs/TRY_ON.md §2). */
@@ -31,8 +39,17 @@ interface MannequinProps {
   interactive?: boolean;
   /** Draw landmarks, anchor boxes and placement boxes (tuning aid). */
   debug?: boolean;
+  /**
+   * Fit editing (docs/TRY_ON.md §6). With this set, an interactive mannequin lets the selected
+   * garment be dragged (one finger or mouse), pinched to scale and twisted to rotate. The garment
+   * follows the pointer live; this is called once, on release, with the new adjustment.
+   */
+  onFitChange?: (itemId: ID, fit: FitAdjust) => void;
   testID?: string;
 }
+
+/** The browser must not scroll or zoom the page while a garment is being moved. */
+const NO_BROWSER_GESTURES = { touchAction: 'none', userSelect: 'none' } as unknown as ViewStyle;
 
 const pct = (v: number, total: number): string => `${Math.round((v / total) * 1e6) / 1e4}%`;
 
@@ -58,6 +75,27 @@ interface LayerProps {
   debug: boolean;
   scale: number;
   onSelect?: (itemId: ID) => void;
+}
+
+const samePlacement = (a: Placement, b: Placement): boolean =>
+  a.x === b.x &&
+  a.y === b.y &&
+  a.width === b.width &&
+  a.height === b.height &&
+  a.rotation === b.rotation &&
+  a.z === b.z;
+
+function layerPropsEqual(a: LayerProps, b: LayerProps): boolean {
+  return (
+    samePlacement(a.placement, b.placement) &&
+    a.item === b.item &&
+    a.uri === b.uri &&
+    a.selected === b.selected &&
+    a.interactive === b.interactive &&
+    a.debug === b.debug &&
+    a.scale === b.scale &&
+    a.onSelect === b.onSelect
+  );
 }
 
 const Layer = memo(function Layer({
@@ -115,7 +153,7 @@ const Layer = memo(function Layer({
       {content}
     </Pressable>
   );
-});
+}, layerPropsEqual);
 
 /**
  * Paper-doll try-on (docs/TRY_ON.md §9): a 1:2 container that scales to its parent's width, the
@@ -131,19 +169,35 @@ export function Mannequin({
   onSelectItem,
   interactive,
   debug = false,
+  onFitChange,
   testID = 'mannequin',
 }: MannequinProps) {
   const [width, setWidth] = useState(0);
-  const placements = useMemo(() => placeOutfit(items, body, outfit), [items, body, outfit]);
+  /** The selected garment's fit while a gesture is running; committed on release. */
+  const [live, setLive] = useState<{ itemId: ID; fit: FitAdjust } | null>(null);
+  const drawn = useMemo(
+    () => (live ? withOverride(outfit, live.itemId, live.fit) : outfit),
+    [outfit, live],
+  );
+  const placements = useMemo(() => placeOutfit(items, body, drawn), [items, body, drawn]);
   const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
   const tappable = interactive ?? onSelectItem !== undefined;
   const scale = width > 0 ? width / UNITS_W : 0.4;
+  const selectedItem = selectedItemId ? byId.get(selectedItemId) : undefined;
+  const fitEditing = tappable && onFitChange !== undefined && selectedItem !== undefined;
+
+  // The responder is created once and told the latest values after every commit.
+  const [session] = useState(() => createFitResponder(setLive));
+  useEffect(() => {
+    session.update({ width, outfit, selectedItem, enabled: fitEditing, onFitChange });
+  });
 
   return (
     <View
-      style={styles.root}
+      style={[styles.root, fitEditing && NO_BROWSER_GESTURES]}
       onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)}
       testID={testID}
+      {...session.responder.panHandlers}
     >
       <View style={styles.fill} pointerEvents="none">
         <Silhouette body={body} testID={`${testID}-silhouette`} />
@@ -172,6 +226,20 @@ export function Mannequin({
       ) : null}
     </View>
   );
+}
+
+/** The outfit with one garment's fit replaced (an outfit is only read for `tucked` and overrides). */
+function withOverride(outfit: Outfit | undefined, itemId: ID, fit: FitAdjust): Outfit {
+  return {
+    id: outfit?.id ?? 'draft',
+    createdAt: outfit?.createdAt ?? '',
+    updatedAt: outfit?.updatedAt ?? '',
+    itemIds: outfit?.itemIds ?? [],
+    source: outfit?.source ?? 'manual',
+    favorite: outfit?.favorite ?? false,
+    ...outfit,
+    fitOverrides: { ...outfit?.fitOverrides, [itemId]: fit },
+  };
 }
 
 const styles = StyleSheet.create({

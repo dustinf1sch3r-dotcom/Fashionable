@@ -1,5 +1,5 @@
-import { Placeholder } from '@/ui/Placeholder';
+import { MixScreen } from '@/features/mix';
 
-export default function MixScreen() {
-  return <Placeholder title="Mix" testID="screen-mix" />;
+export default function MixRoute() {
+  return <MixScreen />;
 }

@@ -34,7 +34,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npx serve ${DIST} -s -l ${PORT}`,
+    // Mimic GitHub Pages: real pages for known routes (mix.html for /mix), 404.html for the rest.
+    // (`serve -s` would answer every route with index.html and hide routing bugs.)
+    command: `npx serve ${DIST} -l ${PORT}`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: true,
     timeout: 60_000,
