@@ -2,10 +2,6 @@ import { createAsyncStorageKv } from './asyncStorageKv';
 import { createFixedClock } from '../testing/fixedClock';
 import { createRepository } from './createRepository';
 
-jest.mock('@react-native-async-storage/async-storage', () =>
-  jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
-);
-
 describe('createAsyncStorageKv', () => {
   it('round-trips values', async () => {
     const kv = createAsyncStorageKv();

@@ -1,3 +1,4 @@
+import { isFeedback, isItem, isOutfit, isProfile, isWearLog } from '@/core/model/validate';
 import type { Entity, Feedback, Item, Outfit, Profile, WearLog } from '@/core/model/types';
 import { createImageStore } from './images';
 import { createAsyncStorageKv, createRepository } from './storage';
@@ -34,14 +35,14 @@ function build(
   ids: IdGenerator,
   onError: ServicesOptions['onStorageError'],
 ): Services {
-  const repo = <T extends Entity>(name: string) =>
-    createRepository<T>(kv, name, { clock, onError });
+  const repo = <T extends Entity>(name: string, validate: (v: unknown) => v is T) =>
+    createRepository<T>(kv, name, { clock, onError, validate });
   return {
-    items: repo<Item>('items'),
-    outfits: repo<Outfit>('outfits'),
-    wearLogs: repo<WearLog>('wearLogs'),
-    feedback: repo<Feedback>('feedback'),
-    profile: repo<Profile>('profile'),
+    items: repo<Item>('items', isItem),
+    outfits: repo<Outfit>('outfits', isOutfit),
+    wearLogs: repo<WearLog>('wearLogs', isWearLog),
+    feedback: repo<Feedback>('feedback', isFeedback),
+    profile: repo<Profile>('profile', isProfile),
     images,
     clock,
     ids,

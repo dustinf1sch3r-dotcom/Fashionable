@@ -6,3 +6,6 @@ export * from './model/slots';
 export * from './model/validate';
 export * from './model/factories';
 export * from './tryon';
+export * from './color/classify';
+export * from './color/palette';
+export * from './color/harmony';

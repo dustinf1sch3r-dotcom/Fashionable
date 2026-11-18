@@ -1,11 +1,6 @@
 import { createTestServices } from './index';
 import type { Outfit } from '@/core/model/types';
 
-// `src/services` imports the AsyncStorage adapter, which needs its native module mocked in Jest.
-jest.mock('@react-native-async-storage/async-storage', () =>
-  jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
-);
-
 describe('createTestServices', () => {
   it('wires repositories to a shared in-memory store with fake clock and ids', async () => {
     const s = createTestServices();

@@ -34,7 +34,7 @@ All in `src/core`. Verify with `npm run check`.
   `model/slots.ts` (`slotOf`, slot capacities per OUTFIT_ENGINE §2), `model/validate.ts` (runtime
   guards for every entity; used when loading stored data), `model/factories.ts` (`newItem`,
   `newOutfit`… taking `Clock` and `IdGenerator`). Tests for each.
-- ☐ **M1-2 Colour.** ∥ `color/classify.ts` (hex → `ColorName`, neutral vs accent, hue families),
+- ☑ **M1-2 Colour.** ∥ `color/classify.ts` (hex → `ColorName`, neutral vs accent, hue families),
   `color/palette.ts` (seeded k-means palette extraction from RGBA per ARCHITECTURE §Image pipeline),
   `color/harmony.ts` (OUTFIT_ENGINE §4.1, returns score + reason). Test every table row; test
   palette extraction on synthetic pixel arrays (two-colour stripes, solid, noisy).
@@ -58,7 +58,7 @@ All in `src/core`. Verify with `npm run check`.
   migrations; `services/images/` `ImageStore` for web (IndexedDB) and native (file system);
   in-memory fakes in `services/testing/`; `services/index.ts` wiring. Tests against fakes and, for
   web, an e2e that reloads the page and finds the data still there.
-- ☐ **M2-2 Stores.** `state/closetStore.ts`, `outfitStore.ts`, `wearStore.ts`, `profileStore.ts`:
+- ☑ **M2-2 Stores.** `state/closetStore.ts`, `outfitStore.ts`, `wearStore.ts`, `profileStore.ts`:
   hydrate on start, debounced persist, actions (add, update, soft-delete, set status). Store tests
   with fakes. Depends on M2-1, M1-1.
 - ☑ **M2-3 UI kit.** ∥ `src/ui`: Button, Chip, ChipGroup, Card, TextField, SegmentedControl, Sheet,

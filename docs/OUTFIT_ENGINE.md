@@ -143,6 +143,10 @@ Adjustments, then clamp to [0, 1]:
   it is not black-on-black or a matching set — near-misses look like a mistake.
 - **+0.05** if shoes, belt or bag repeat an accent family found in a main piece (colour echo).
 
+**Tuning note:** hue distances 61–104° and 136–149° fall through to 0.45. This means, for example,
+a warm red with a bluish green scores as a clash rather than complementary. Revisit once real
+closets are in the app.
+
 Emit one reason: `COLOR_NEUTRAL_BASE`, `COLOR_ACCENT_POP`, `COLOR_MONOCHROME`,
 `COLOR_COMPLEMENTARY`, `COLOR_ANALOGOUS`, `COLOR_TRIADIC`, `COLOR_CLASH`, with colour names as
 params.

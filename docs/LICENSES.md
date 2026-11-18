@@ -29,6 +29,17 @@ build tools that are not part of the app's own code:
 
 `node-forge` is offered under "BSD-3-Clause OR GPL-2.0"; we use it under BSD-3-Clause.
 
+### Runtime packages added on purpose
+
+| Package                                     | Licence | Why                                  |
+| ------------------------------------------- | ------- | ------------------------------------ |
+| `zustand`                                   | MIT     | App state stores                     |
+| `@react-native-async-storage/async-storage` | MIT     | On-device record storage             |
+| `expo-file-system`                          | MIT     | On-device image files (store builds) |
+
+Dev-only (not shipped): `@testing-library/react-native` (MIT), `fake-indexeddb` (Apache-2.0),
+`@playwright/test` (Apache-2.0), `serve` (MIT).
+
 ## Things the automatic check cannot see
 
 ### Models (downloaded at run time, never committed)
