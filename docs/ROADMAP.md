@@ -44,7 +44,7 @@ All in `src/core`. Verify with `npm run check`.
 - ☑ **M1-4 Scoring components.** `engine/weights.ts`, `engine/score/*.ts` for formality, pattern,
   coordination, freshness, occasion, weather (OUTFIT_ENGINE §4–6), and `engine/scoreOutfit.ts`
   combining them with renormalised weights. Depends on M1-1, M1-2, M1-3.
-- ☐ **M1-5 Generator.** `engine/generate.ts`: eligibility, core combos with sampling, beam,
+- ☑ **M1-5 Generator.** `engine/generate.ts`: eligibility, core combos with sampling, beam,
   dress-up, MMR diversity, diagnostics (OUTFIT_ENGINE §3). Property tests, golden test, performance
   test (§9). Depends on M1-4.
 - ☑ **M1-6 Taste learning.** ∥ `engine/taste.ts`: affinity tables and taste score (§7); never
@@ -79,9 +79,9 @@ All in `src/core`. Verify with `npm run check`.
 
 ## M3 — Cutouts
 
-- ☐ **M3-1 Pixel utilities.** `PixelReader` adapters (web canvas; native PNG decode), alpha
+- ◐ **M3-1 Pixel utilities.** (web done; native PNG decode and native cutouts later) `PixelReader` adapters (web canvas; native PNG decode), alpha
   bounding-box trim, cutout + thumbnail generation per TRY_ON §7. Depends on M2-1.
-- ☐ **M3-2 Web background removal.** `BackgroundRemover` for web using the model chosen in R1,
+- ◐ **M3-2 Web background removal.** (implemented; still to prove on a real iPhone, worker, offline check) `BackgroundRemover` for web using the model chosen in R1,
   lazy-loaded on first use with progress UI, cached for offline use, running off the main thread.
   Falls back cleanly when unsupported. Wire into the add-item flow; "re-cut" action for existing
   items. Use the models named in ARCHITECTURE.md; test on a real iPhone before calling it done.

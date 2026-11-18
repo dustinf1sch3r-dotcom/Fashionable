@@ -4,9 +4,13 @@ import type { Item, Slot, Weather } from '../../model/types';
 import {
   RAIN_PRECIP_THRESHOLD,
   RAIN_SENSITIVE_SLOTS,
+  SUN_BONUS_HEAD_MAX_WARMTH,
   SUN_BONUS_POINTS,
   SUN_BONUS_SLOTS,
   SUN_MIN_FEELS_LIKE_C,
+  WARM_WEATHER_ACCESSORY_SLOTS,
+  WARM_WEATHER_ACCESSORY_WARMTH_AT_LEAST,
+  WARM_WEATHER_MIN_FEELS_LIKE_C,
   WARMTH_LAYER_SLOTS,
   WEATHER_BANDS,
   WEATHER_HARD_RULE_FACTOR,
@@ -48,6 +52,13 @@ export function isItemAllowedInWeather(item: Item, weather: Weather | undefined)
   const band = weatherBand(weather);
   const slot = slotOf(item);
   if (band.forbiddenSlots.includes(slot)) return false;
+  if (
+    weather.feelsLikeC >= WARM_WEATHER_MIN_FEELS_LIKE_C &&
+    WARM_WEATHER_ACCESSORY_SLOTS.includes(slot) &&
+    item.warmth >= WARM_WEATHER_ACCESSORY_WARMTH_AT_LEAST
+  ) {
+    return false;
+  }
   if (band.excludeWarmthAtLeast !== undefined && item.warmth >= band.excludeWarmthAtLeast) {
     return false;
   }
@@ -92,7 +103,9 @@ export function missingLayers(items: readonly Item[], weather: Weather): Slot[][
 /** Bonus points (0–100 scale) for sunglasses / hat in sunny weather ≥ 20°C. */
 export function sunBonusPoints(items: readonly Item[], weather: Weather | undefined): number {
   if (!weather || !isSunBonusActive(weather)) return 0;
-  const filled = SUN_BONUS_SLOTS.filter((s) => items.some((i) => slotOf(i) === s));
+  const filled = SUN_BONUS_SLOTS.filter((s) =>
+    items.some((i) => slotOf(i) === s && (s !== 'head' || i.warmth <= SUN_BONUS_HEAD_MAX_WARMTH)),
+  );
   return filled.length * SUN_BONUS_POINTS;
 }
 

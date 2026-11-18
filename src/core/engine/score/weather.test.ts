@@ -85,9 +85,18 @@ describe('isItemAllowedInWeather hard rules', () => {
       expect(isItemAllowedInWeather(tweak('jacket-denim', { warmth: 2 }), w)).toBe(true);
       expect(isItemAllowedInWeather(tweak('jacket-denim', { warmth: 3 }), w)).toBe(false);
     });
-    it('excludes warmth 5, allows 4 for non-outer', () => {
+    it('excludes warmth >= 4, allows 3', () => {
       expect(isItemAllowedInWeather(tweak('sweater-red', { warmth: 5 }), w)).toBe(false);
-      expect(isItemAllowedInWeather(tweak('sweater-red', { warmth: 4 }), w)).toBe(true);
+      expect(isItemAllowedInWeather(tweak('sweater-red', { warmth: 4 }), w)).toBe(false);
+      expect(isItemAllowedInWeather(tweak('sweater-red', { warmth: 3 }), w)).toBe(true);
+    });
+    it('excludes neck and head items with warmth >= 3 (also when hot, not when cooler)', () => {
+      for (const id of ['beanie-grey', 'scarf-wool-red']) {
+        expect(isItemAllowedInWeather(tweak(id, { warmth: 3 }), w)).toBe(false);
+        expect(isItemAllowedInWeather(tweak(id, { warmth: 2 }), w)).toBe(true);
+        expect(isItemAllowedInWeather(tweak(id, { warmth: 3 }), wx(31))).toBe(false);
+        expect(isItemAllowedInWeather(tweak(id, { warmth: 3 }), wx(19))).toBe(true);
+      }
     });
   });
   describe('13–19°C', () => {
@@ -130,9 +139,12 @@ describe('isItemAllowedInWeather hard rules', () => {
 
 describe('sunBonusPoints', () => {
   const sun = wx(22, { isSunny: true });
-  it('+1 each for eyes and head when sunny and >= 20°C', () => {
+  it('+1 each for eyes and head (warmth <= 2) when sunny and >= 20°C', () => {
     expect(sunBonusPoints(outfit('sunglasses-black'), sun)).toBe(1);
-    expect(sunBonusPoints(outfit('sunglasses-black', 'beanie-grey'), sun)).toBe(2);
+    const cap = tweak('beanie-grey', { warmth: 1 });
+    expect(sunBonusPoints([...outfit('sunglasses-black'), cap], sun)).toBe(2);
+    expect(sunBonusPoints([tweak('beanie-grey', { warmth: 3 })], sun)).toBe(0);
+    expect(sunBonusPoints(outfit('sunglasses-black', 'beanie-grey'), sun)).toBe(1);
     expect(sunBonusPoints(outfit('tee-white'), sun)).toBe(0);
   });
   it('none when cloudy, cool or no weather', () => {

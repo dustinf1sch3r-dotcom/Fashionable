@@ -43,6 +43,23 @@ export const DRESS_UP_SLOT_ORDER: readonly Slot[] = [
   'jewelry',
 ];
 
+/** Optional accessory slots; an outfit fills at most `MAX_ACCESSORY_SLOTS` of them. */
+export const ACCESSORY_SLOTS: readonly Slot[] = ['neck', 'head', 'eyes', 'bag', 'wrist', 'jewelry'];
+/** Jewelry counts as one slot however many pieces. Belts and weather-required slots are exempt. */
+export const MAX_ACCESSORY_SLOTS = 3;
+
+/** Performance limits for large closets (OUTFIT_ENGINE §3, "Performance limits"). */
+/** Above this many core combos, a cheap pre-score (no colour, no history) trims the list. */
+export const CORE_PRESCORE_THRESHOLD = 1000;
+/** Number of cores that survive the pre-score and are fully scored. */
+export const CORE_PRESCORE_KEEP = 300;
+/** Candidates tried per slot and combo; larger pools are sampled by a rotating window. */
+export const DRESS_UP_CANDIDATES_PER_SLOT = 8;
+/** Outfit evaluations spent on dress-up; once spent, remaining beam cores are not dressed. */
+export const DRESS_UP_EVAL_BUDGET = 1000;
+/** Beam cores that are always dressed, whatever the budget. */
+export const DRESS_UP_MIN_COMBOS = 8;
+
 // ── §4.2 Formality ──────────────────────────────────────────────────────────────────────────
 
 /** Slots whose formality is compared. */
@@ -133,6 +150,8 @@ export const OCCASION_RULES: Readonly<Record<Occasion, OccasionRule>> = {
   smart: { minFormality: 3, maxFormality: 4, ideal: 3.5, onlySporty: false, skipSlots: [] },
   formal: { minFormality: 4, maxFormality: 5, ideal: 4.5, onlySporty: false, skipSlots: [] },
 };
+/** Sporty items are only eligible for these occasions (unless pinned). */
+export const SPORTY_ALLOWED_OCCASIONS: readonly Occasion[] = ['active', 'lounge', 'any'];
 /** `1 − |mean − ideal| / OCCASION_DIVISOR`. */
 export const OCCASION_DIVISOR = 2;
 
@@ -186,7 +205,7 @@ export const WEATHER_BANDS: readonly WeatherBand[] = [
     forbiddenSlots: [],
     requiredAnyOf: [],
     maxOuterWarmth: 2,
-    excludeWarmthAtLeast: 5,
+    excludeWarmthAtLeast: 4,
     excludeOpenShoes: false,
     excludeShorts: false,
     encouragedSlots: [],
@@ -234,6 +253,14 @@ export const SUN_MIN_FEELS_LIKE_C = 20;
 export const SUN_BONUS_SLOTS: readonly Slot[] = ['eyes', 'head'];
 /** Points on the 0–100 outfit score per sun slot filled. */
 export const SUN_BONUS_POINTS = 1;
+/** Only `head` items up to this warmth earn the sun bonus (caps, sun hats; not beanies). */
+export const SUN_BONUS_HEAD_MAX_WARMTH = 2;
+
+/** From this `feelsLikeC` up, warm `neck` / `head` items are excluded and no `mid` is added. */
+export const WARM_WEATHER_MIN_FEELS_LIKE_C = 20;
+export const WARM_WEATHER_ACCESSORY_SLOTS: readonly Slot[] = ['neck', 'head'];
+/** In warm weather, neck / head items with warmth at or above this are excluded. */
+export const WARM_WEATHER_ACCESSORY_WARMTH_AT_LEAST = 3;
 
 /** Slots whose items count as "worn layers" for the warmth mean. */
 export const WARMTH_LAYER_SLOTS: readonly Slot[] = [

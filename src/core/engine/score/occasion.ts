@@ -1,6 +1,6 @@
 import { MAIN_SLOTS, slotOf } from '../../model/slots';
 import type { Item, Occasion, Slot } from '../../model/types';
-import { OCCASION_DIVISOR, OCCASION_RULES } from '../weights';
+import { OCCASION_DIVISOR, OCCASION_RULES, SPORTY_ALLOWED_OCCASIONS } from '../weights';
 import { clamp01, itemsInSlots, mean } from './types';
 import type { ComponentResult } from './types';
 
@@ -11,13 +11,15 @@ export function occasionSkipsSlot(occasion: Occasion, slot: Slot): boolean {
 
 /**
  * Hard rule for the generator (OUTFIT_ENGINE §3 step 1, §5): formality inside the occasion's
- * range, skipped slots excluded, and for `active` only `sporty` items.
+ * range, skipped slots excluded, for `active` only `sporty` items, and sporty items only for
+ * `active`, `lounge` and `any`.
  */
 export function isItemAllowedForOccasion(item: Item, occasion: Occasion): boolean {
   const rule = OCCASION_RULES[occasion];
   if (item.formality < rule.minFormality || item.formality > rule.maxFormality) return false;
   if (occasionSkipsSlot(occasion, slotOf(item))) return false;
   if (rule.onlySporty && !item.sporty) return false;
+  if (item.sporty && !SPORTY_ALLOWED_OCCASIONS.includes(occasion)) return false;
   return true;
 }
 

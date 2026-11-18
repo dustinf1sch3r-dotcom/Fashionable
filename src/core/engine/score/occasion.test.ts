@@ -28,6 +28,15 @@ describe('isItemAllowedForOccasion (§5 table)', () => {
     });
   }
 
+  it('sporty items are only allowed for active, lounge and any', () => {
+    const sporty = tweak('tee-white', { formality: 2, sporty: true });
+    for (const o of ['active', 'lounge', 'any'] as const) {
+      expect(isItemAllowedForOccasion(sporty, o)).toBe(true);
+    }
+    for (const o of ['casual', 'work', 'smart', 'formal'] as const) {
+      expect(isItemAllowedForOccasion(sporty, o)).toBe(false);
+    }
+  });
   it('active: formality 1–2 and sporty only', () => {
     expect(
       isItemAllowedForOccasion(tweak('tee-white', { formality: 1, sporty: true }), 'active'),

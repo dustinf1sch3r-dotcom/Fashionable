@@ -67,8 +67,8 @@ closet ─► eligibility filter ─► core combos ─► score ─► keep bes
 ```
 
 1. **Eligibility filter (hard rules, per item).** Drop items that are not `status: 'active'`,
-   are excluded, fall outside the occasion's formality range (§5), or break a weather hard rule
-   (§6). Pinned items are never dropped; if a pinned item breaks a hard rule, keep it and emit a
+   are excluded, fall outside the occasion's formality range (§5), are `sporty` outside the
+   occasions `active`, `lounge` and `any` (§5), or break a weather hard rule (§6). Pinned items are never dropped; if a pinned item breaks a hard rule, keep it and emit a
    `PINNED_OVERRIDE` reason.
 2. **Core combos.** Two templates:
    - `separates`: `base` × `bottom` × `shoes`
@@ -83,7 +83,11 @@ closet ─► eligibility filter ─► core combos ─► score ─► keep bes
    - **required** when weather demands it (§6) — pick the best-scoring eligible item; if none
      exists, keep the combo but emit `MISSING_LAYER`;
    - **optional** otherwise — add the best-scoring item only if it raises the outfit score by at
-     least `ADD_ON_MIN_GAIN` (1.0 point). Belts are only considered when the bottom's subcategory is
+     least `ADD_ON_MIN_GAIN` (1.0 point). A `mid` is never added as an optional piece when
+     `feelsLikeC ≥ 20`.
+   - **accessory cap:** an outfit holds at most `MAX_ACCESSORY_SLOTS` (3) of the optional accessory
+     slots `neck`, `head`, `eyes`, `bag`, `wrist`, `jewelry`; jewelry counts as one slot however many
+     pieces. Pinned accessories count towards the cap. Belts and weather-required slots do not. Belts are only considered when the bottom's subcategory is
      belt-compatible (trousers, jeans, chinos, shorts, belt-looped skirts).
 5. **Re-score** complete outfits.
 6. **Diversify** with maximal marginal relevance: repeatedly pick the candidate maximising
@@ -92,6 +96,38 @@ closet ─► eligibility filter ─► core combos ─► score ─► keep bes
 
 If the closet cannot fill a template (e.g. no shoes), return an empty list plus a
 `ClosetTooSmall` diagnostic naming the missing slots, so the UI can say "add some shoes".
+
+### Performance limits
+
+All constants are in `weights.ts`. They only bite on large closets; a closet with at most about a
+thousand core combos follows the pipeline above exactly.
+
+- **Pre-score:** above `CORE_PRESCORE_THRESHOLD` (1000) core combos, a cheap score (formality,
+  weather, pattern, occasion, coordination; no colour, no history) keeps the best
+  `CORE_PRESCORE_KEEP` (300), and only those get the full score before the beam.
+- **Candidate window:** dress-up tries at most `DRESS_UP_CANDIDATES_PER_SLOT` (8) candidates per slot;
+  larger pools are sampled by a window that rotates with the combo's beam rank.
+- **Budget:** dress-up stops after `DRESS_UP_EVAL_BUDGET` (1000) outfit evaluations, but always
+  dresses at least `DRESS_UP_MIN_COMBOS` (8) combos.
+- Wear logs are pruned once per run to worn logs inside the 14-day freshness window (plus one older
+  log so "has history" still holds); the score is unchanged.
+
+### Decisions
+
+1. A pin that is also excluded is ignored: exclusion wins.
+2. A pinned item is kept whatever its status and placed even in a slot the occasion or weather
+   would skip; `PINNED_OVERRIDE` is emitted when it breaks an occasion or weather hard rule.
+3. Pins that cannot coexist (two in one single-capacity slot, more than 3 jewelry, a onepiece with a
+   base or bottom) yield no outfits and no `missingSlots`.
+4. "Mid or outer" requirement: outer is tried first as an ordinary add-on; mid becomes required only
+   if the group is still unmet and no later slot in it has candidates. In the cold band a required
+   outer needs warmth ≥ 4; if none exists the combo is kept and scoring emits `MISSING_LAYER`.
+5. Belts are considered only with a separate bottom whose `beltCompatible` is true; a onepiece never
+   gets a belt.
+6. `missingSlots` names the template with fewer missing slots (separates win ties).
+7. Seeded ties: the seed shuffles each slot pool once, so every stable-sort tie and "first best"
+   choice depends on it; it also drives sampling above `MAX_CORE_COMBOS`.
+8. The taste model is built once per run over the whole closet and shared by all scoring calls.
 
 ## 4. Scoring
 
@@ -207,6 +243,9 @@ worn in the last 3 days.
 | `smart`  | 3–4               | 3.5   | date night / dinner; pattern score of 1 patterned piece gets +0.05 |
 | `formal` | 4–5               | 4.5   |                                                                    |
 
+Sporty items (`sporty: true`) are only eligible for `active`, `lounge` and `any`; for every other
+occasion they are excluded unless pinned (then `PINNED_OVERRIDE`).
+
 Occasion score = `1 − |mean formality of main pieces − ideal| / 2`, clamped to [0, 1].
 
 ## 6. Weather
@@ -218,13 +257,17 @@ Warmth is 1 (sheer / summer) to 5 (heavy winter). Bands use `feelsLikeC`:
 | Feels like | Layers                                                            | Hard rules                 | Target mean warmth |
 | ---------- | ----------------------------------------------------------------- | -------------------------- | ------------------ |
 | ≥ 27°C     | no `mid`, no `outer`                                              | exclude warmth ≥ 4         | 1.5                |
-| 20–26°C    | `outer` optional (warmth ≤ 2)                                     | exclude warmth 5           | 2                  |
+| 20–26°C    | `outer` optional (warmth ≤ 2)                                     | exclude warmth ≥ 4         | 2                  |
 | 13–19°C    | `mid` or `outer` required                                         | exclude warmth 1 bottoms   | 3                  |
 | 5–12°C     | `outer` required, `mid` optional                                  | exclude open shoes, shorts | 3.5                |
 | < 5°C      | `outer` (warmth ≥ 4) and `mid` required; `neck`/`head` encouraged | as above                   | 4.5                |
 
+Warm weather (`feelsLikeC ≥ 20`): additionally exclude `neck` and `head` items with warmth ≥ 3
+(wool scarves, beanies), and never add a `mid` as an optional piece.
+
 Rain (`precipProbability ≥ 0.5`): exclude items with `rainOk: false` from `shoes`, `outer`, `bag`.
-Sun (`isSunny` and ≥ 20°C): `eyes` (sunglasses) and `head` gain +1 point when added.
+Sun (`isSunny` and ≥ 20°C): `eyes` (sunglasses) and `head` items with warmth ≤ 2 (caps, sun hats)
+gain +1 point when added.
 
 Weather score = `1 − |mean warmth of worn layers − target| / 2`, clamped; multiply by 0.5 if a
 required layer is missing, and by 0.3 if any item breaks a hard rule for the band (emit
