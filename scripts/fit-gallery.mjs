@@ -19,10 +19,16 @@
  * the app detected (read back from the closet it saved them to) drawn and labelled.
  * The photo is only read; it is never copied anywhere.
  */
-import { existsSync, readFileSync, statSync, mkdirSync, writeFileSync } from 'node:fs';
-import { createServer } from 'node:http';
-import { extname, join, resolve } from 'node:path';
-import { chromium } from '@playwright/test';
+import { existsSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import {
+  PHONE,
+  drawRig,
+  launchBrowser,
+  openTestId as openTestIdAt,
+  rigidPage,
+  startServer,
+} from './lib/harness.mjs';
 
 const ROOT = process.cwd();
 const GARMENT_DIR = join(ROOT, 'e2e/fixtures/garments');
@@ -175,58 +181,9 @@ const OUTFITS = [
 const itemId = (key) => `gallery-${key}`;
 const outfitId = (name) => `gallery-outfit-${name}`;
 
-// ── static server (like GitHub Pages: /mix -> mix.html, anything else -> 404.html) ───────────
-const MIME = {
-  '.html': 'text/html',
-  '.js': 'text/javascript',
-  '.mjs': 'text/javascript',
-  '.css': 'text/css',
-  '.json': 'application/json',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon',
-  '.wasm': 'application/wasm',
-  '.onnx': 'application/octet-stream',
-  '.woff': 'font/woff',
-  '.woff2': 'font/woff2',
-  '.ttf': 'font/ttf',
-  '.webmanifest': 'application/manifest+json',
-  '.tflite': 'application/octet-stream',
-  '.task': 'application/octet-stream',
-};
-function resolveFile(urlPath) {
-  const clean = decodeURIComponent(urlPath.split('?')[0]).replace(/\.\.+/g, '');
-  const candidates = [clean, `${clean}.html`, join(clean, 'index.html')];
-  for (const c of candidates) {
-    const f = join(dist, c);
-    if (existsSync(f) && statSync(f).isFile()) return { file: f, status: 200 };
-  }
-  return { file: join(dist, '404.html'), status: 404 };
-}
-const server = createServer((req, res) => {
-  const { file, status } = resolveFile(req.url ?? '/');
-  if (!existsSync(file)) {
-    res.writeHead(404).end('not found');
-    return;
-  }
-  res.writeHead(status, { 'content-type': MIME[extname(file)] ?? 'application/octet-stream' });
-  res.end(readFileSync(file));
-});
-await new Promise((ok) => server.listen(0, '127.0.0.1', ok));
-const BASE = `http://127.0.0.1:${server.address().port}`;
-
-// ── browser helpers ──────────────────────────────────────────────────────────────────────────
-const chromiumPath =
-  process.env.PW_CHROMIUM_PATH ??
-  (existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
-const browser = await chromium.launch({ executablePath: chromiumPath });
-const phone = {
-  viewport: { width: 390, height: 844 },
-  deviceScaleFactor: 2,
-  isMobile: true,
-  hasTouch: true,
-};
+const { server, base: BASE } = await startServer(dist);
+const browser = await launchBrowser();
+const phone = PHONE;
 
 const wrap = (records) => JSON.stringify({ schemaVersion: 1, records });
 function seedPayload() {
@@ -299,27 +256,7 @@ async function seed(page) {
   }, seedPayload());
 }
 
-async function openTestId(page, path, testId) {
-  for (let attempt = 0; attempt < 8; attempt++) {
-    await page.goto(BASE + path);
-    try {
-      await page.getByTestId(testId).waitFor({ state: 'visible', timeout: 4000 });
-      return;
-    } catch {
-      /* the stores read storage on load; try again */
-    }
-  }
-  throw new Error(`Could not open ${path}`);
-}
-
-/** Pages whose fitted images cannot be encoded: the Mannequin keeps rigid placement. */
-async function rigidPage(context) {
-  const page = await context.newPage();
-  await page.addInitScript(() => {
-    HTMLCanvasElement.prototype.toBlob = (cb) => cb(null);
-  });
-  return page;
-}
+const openTestId = (page, path, testId) => openTestIdAt(page, BASE, path, testId);
 
 /** Real setup flow on the photo: guide, pick, detect, (place by hand if needed), save. */
 async function setUpPhoto(page, file) {
@@ -459,43 +396,12 @@ try {
       if (!item.fit || seen.has(file)) continue;
       seen.add(file);
       const png = readFileSync(join(GARMENT_DIR, `${file}.png`)).toString('base64');
-      await sp.setViewportSize({ width: 700, height: 800 });
-      await sp.setContent('<body style="margin:0;background:#fff"><canvas id="c"></canvas></body>');
-      await sp.evaluate(
-        async ({ png, points, title }) => {
-          const img = new Image();
-          img.src = `data:image/png;base64,${png}`;
-          await img.decode();
-          const k = Math.min(680 / img.width, 760 / img.height);
-          const c = document.getElementById('c');
-          c.width = img.width * k + 20;
-          c.height = img.height * k + 40;
-          const g = c.getContext('2d');
-          g.fillStyle = '#fff';
-          g.fillRect(0, 0, c.width, c.height);
-          g.drawImage(img, 10, 30, img.width * k, img.height * k);
-          g.fillStyle = '#000';
-          g.font = '14px sans-serif';
-          g.fillText(title, 10, 18);
-          g.font = '11px sans-serif';
-          for (const [name, p] of Object.entries(points)) {
-            const x = 10 + p.x * img.width * k;
-            const y = 30 + p.y * img.height * k;
-            g.fillStyle = name.endsWith('R') ? '#d00' : '#06c';
-            g.beginPath();
-            g.arc(x, y, 4, 0, 7);
-            g.fill();
-            g.fillStyle = '#000';
-            g.fillText(name, x + 6, y - 4);
-          }
-        },
-        {
-          png,
-          points: item.fit.points,
-          title: `${file} (${item.fit.kind}, confidence ${item.fit.confidence.toFixed(2)})`,
-        },
-      );
-      await sp.locator('#c').screenshot({ path: join(outDir, `rig-${file}.png`) });
+      await drawRig(sp, {
+        png,
+        points: item.fit.points,
+        title: `${file} (${item.fit.kind}, confidence ${item.fit.confidence.toFixed(2)})`,
+        file: join(outDir, `rig-${file}.png`),
+      });
     }
   }
   writeFileSync(join(outDir, 'fit-gallery.txt'), `built from ${dist}\nphoto: ${photo ?? 'none'}\n`);

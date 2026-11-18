@@ -60,6 +60,7 @@
     "check": "npm run typecheck && npm run lint && npm test && npm run test:perf",
     "licenses": "node scripts/check-licenses.js",
     "fit-gallery": "node scripts/fit-gallery.mjs",
+    "real-trial": "node scripts/real-trial.mjs",
     "test:perf": "PERF_TESTS=1 jest --runInBand --testPathPatterns 'perf\\.test\\.ts$'"
   },
   "private": true
