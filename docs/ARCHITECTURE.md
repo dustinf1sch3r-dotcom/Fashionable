@@ -213,35 +213,45 @@ See TRY_ON.md §7 for the steps. Implementation notes:
   from a 64 × 64 downscale: on web via a canvas, on native by decoding a small PNG in JavaScript.
 - **Alpha trim** uses the same `PixelReader` at higher resolution to find the bounding box.
 
-### Background removal — decision and open questions
+### Background removal — decision
 
 Requirement: on-device, no cloud service, and both code and model weights licensed for a
-closed-source commercial app.
+closed-source commercial app. Sources and quotes are in docs/LICENSES.md.
 
-| Platform               | Plan                                                                                                                                         | Status                                                                                                                                    |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Web (proof of concept) | ONNX model run in the browser through Transformers.js or ONNX Runtime Web (both permissively licensed), using a U²-Net-family or ISNet model | **Model-weight licence, download size and iOS Safari behaviour not yet confirmed** — ticket R1 must settle this before M3 code is written |
-| iOS (store build)      | Apple Vision subject lifting through a small Expo native module                                                                              | Reported as iOS 17+ by wrapper libraries; confirm against Apple's docs (R1)                                                               |
-| Android (store build)  | Google ML Kit Subject Segmentation through the same module                                                                                   | Was a beta release in the wrapper libraries we found; confirm current status (R1)                                                         |
-| Any, as fallback       | No removal: keep the photo as a rounded rectangle, `hasAlpha: false`                                                                         | Always available                                                                                                                          |
+| Platform                        | Choice                                                                                                                           | Notes                                                                                                          |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Web (proof of concept), default | **U-2-Netp** ONNX weights (`BritishWerewolf/U-2-Netp`, `onnx/model.onnx`, 4.6 MB, Apache-2.0) run with **onnxruntime-web** (MIT) | Small enough for iPhone Safari's memory limits. Quality is adequate for a garment on a plain background.       |
+| Web, optional "high quality"    | **BiRefNet_lite** fp16 ONNX (`onnx-community/BiRefNet_lite-ONNX`, 114.5 MB, MIT)                                                 | Only as an opt-in download, and only after it has been proven on a real iPhone. Not yet tested there.          |
+| iOS store build                 | Apple Vision subject lifting (`VNGenerateForegroundInstanceMaskRequest`, **iOS 17+**) via a small Expo native module             | Part of the OS; nothing to license.                                                                            |
+| Android store build             | Google ML Kit Subject Segmentation (`play-services-mlkit-subject-segmentation`, min API 24)                                      | **Still a beta API** with no stability guarantee. Keep the U-2-Netp path available on Android as the fallback. |
+| Any                             | No removal: keep the photo as a rounded rectangle, `hasAlpha: false`                                                             | Always available.                                                                                              |
 
-Ruled out:
+Model files are downloaded on first use and cached; they are never committed to this repo.
 
-- `@imgly/background-removal` — AGPL-3.0; cannot be used in a closed-source app without buying a
-  licence from IMG.LY.
-- BRIA RMBG models — treat as non-commercial until someone reads the model card and proves
-  otherwise.
+Not allowed:
+
+- `@imgly/background-removal` — AGPL-3.0.
+- Any BRIA RMBG model (1.4, 2.0, 3.0) — non-commercial licence.
+- `onnx-community/ISNet-ONNX` — AGPL-3.0.
+- `Xenova/modnet` — licence is fine, but it only handles portraits of people.
 
 Native options need an Expo **development build**; none work in Expo Go.
 
 ## Weather
 
-`WeatherProvider` implementation for phase 1: Open-Meteo forecast API (no key). Its README states
-the free API is for non-commercial use, asks for an attribution link wherever data is shown, and
-asks commercial users to get in touch. So: fine for the proof of concept with attribution on the
-weather card; **a commercial plan or another provider is required before store release**. Cache one
-forecast per location per day. If location permission is refused, the user types a city (geocoded
-by the provider) or the engine runs without weather.
+`WeatherProvider` implementation for the proof of concept: Open-Meteo's free forecast API (no
+key). Its terms say "You may only use the free API services for non-commercial purposes", and count
+apps with subscriptions or adverts as commercial. Data is CC BY 4.0, so the weather card shows
+"Weather data by Open-Meteo.com" with a link.
+
+**Before the app is sold**, switch the provider's base URL and key to Open-Meteo's paid plan
+(`customer-api.open-meteo.com`, same request format, includes a commercial licence) or to another
+provider whose terms the owner has read. This is a config change, not a rewrite, because the app
+only talks to `WeatherProvider`. `npm run licenses` cannot detect this; it is on the pre-sale
+checklist in docs/LICENSES.md.
+
+Cache one forecast per location per day. If location permission is refused, the user types a city
+(geocoded by the provider) or the engine runs without weather.
 
 ## Testing strategy
 

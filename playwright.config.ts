@@ -2,7 +2,9 @@ import { existsSync } from 'node:fs';
 
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = 4173;
+// Override both to run several builds side by side: E2E_DIST=dist-x E2E_PORT=4180 npm run e2e
+const PORT = Number(process.env.E2E_PORT ?? 4173);
+const DIST = process.env.E2E_DIST ?? 'dist';
 
 function resolveChromiumPath(): string | undefined {
   if (process.env.PW_CHROMIUM_PATH) return process.env.PW_CHROMIUM_PATH;
@@ -32,7 +34,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npx serve dist -s -l ${PORT}`,
+    command: `npx serve ${DIST} -s -l ${PORT}`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: true,
     timeout: 60_000,

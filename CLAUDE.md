@@ -14,7 +14,8 @@ Read before coding: `docs/ROADMAP.md` (your ticket) and the spec it points to �
    "improve" it.
 2. **Licences.** The app will be sold closed-source. Before adding any dependency or model file,
    check its licence. No GPL/AGPL/LGPL code, no "non-commercial" or "research only" model weights.
-   State the licence in your commit message when you add a dependency.
+   `npm run licenses` must pass; it fails on anything not cleared. Record every new dependency,
+   model, font, icon set, image or data source in `docs/LICENSES.md` with its licence and source.
 3. **`src/core` is pure.** No `react`, `react-native`, `expo*` imports (ESLint enforces this). Also
    no `Date.now()`, `new Date()` without an argument, `Math.random()`, network or storage: time,
    randomness and data are passed in as parameters so results are reproducible.
@@ -88,7 +89,7 @@ Path alias: `@/…` → `src/…`.
 ### Definition of done
 
 - [ ] `npm run check` passes.
-- [ ] `npm run format:check` passes.
+- [ ] `npm run format:check` and `npm run licenses` pass.
 - [ ] For anything visible: `npm run build:web && npm run e2e` passes, with an e2e spec covering
       the new happy path, and you looked at a screenshot at 390×844 to confirm it reads well.
 - [ ] No new lint disables, skipped tests or `any`.
@@ -99,8 +100,9 @@ Path alias: `@/…` → `src/…`.
 
 - Expo SDK 58, React Native 0.88, React 19, TypeScript 6 (`tsconfig.json` lists `types`
   explicitly; add to it if a new `@types/*` package is not picked up).
-- Background removal model choice is **not settled** (roadmap ticket R1). Do not add a model or a
-  background-removal package until R1 is done. `@imgly/background-removal` is AGPL: not allowed.
-- Open-Meteo's free weather API is non-commercial and needs attribution; fine for now, must be
-  replaced or licensed before store release (ticket R2).
+- Background removal: only the models and runtimes named in ARCHITECTURE.md ("Background removal
+  — decision"). `@imgly/background-removal`, BRIA RMBG models and `onnx-community/ISNet-ONNX` are
+  not licensed for a sold app: never use them.
+- Open-Meteo's free weather API is non-commercial and needs attribution; fine for the proof of
+  concept, must move to the paid plan or another provider before sale.
 - Browser storage can be evicted. Never treat it as the only copy once export/backup exists.

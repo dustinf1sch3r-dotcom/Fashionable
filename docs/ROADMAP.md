@@ -15,18 +15,13 @@ Every ticket's definition of done includes the checklist in CLAUDE.md ("Definiti
 - ☑ Product brief, architecture, engine spec, try-on spec, this roadmap.
 - ☑ Canonical domain types in `src/core/model/types.ts`.
 
-## Research (needs web access to hosts the default sandbox blocks)
+## Research ☑
 
-- ☐ **R1 Cutout model and native API facts.** Confirm from primary sources and record in
-  ARCHITECTURE.md: (a) an Apache/MIT-licensed background-removal model whose _weights_ are licensed
-  for commercial use, its download size, and that it runs in iOS Safari through Transformers.js or
-  ONNX Runtime Web; (b) minimum iOS version for Apple Vision subject lifting; (c) current release
-  status and requirements of ML Kit Subject Segmentation; (d) pose-detection options for phase 3
-  (MediaPipe Pose Landmarker, ML Kit Pose, Apple Vision body pose) with licences. Needs
-  `huggingface.co`, `developers.google.com`, `developer.apple.com` reachable. **Blocks M3-2.**
-- ☐ **R2 Weather terms.** Read Open-Meteo's official terms and pricing page; find one alternative
-  with a free tier that allows commercial use. Record in ARCHITECTURE.md. Needs `open-meteo.com`.
-  Blocks store release only.
+- ☑ **R1 Cutout model and native API facts.** Settled; see ARCHITECTURE.md "Background removal —
+  decision" and docs/LICENSES.md. Still open: prove the models on a real iPhone (part of M3-2), and
+  read the MediaPipe pose model card before M9-3.
+- ☑ **R2 Weather terms.** Open-Meteo free tier is non-commercial; paid plan or another provider
+  needed before sale. See docs/LICENSES.md pre-sale checklist.
 
 ---
 
@@ -89,7 +84,7 @@ All in `src/core`. Verify with `npm run check`.
 - ☐ **M3-2 Web background removal.** `BackgroundRemover` for web using the model chosen in R1,
   lazy-loaded on first use with progress UI, cached for offline use, running off the main thread.
   Falls back cleanly when unsupported. Wire into the add-item flow; "re-cut" action for existing
-  items. **Blocked by R1.**
+  items. Use the models named in ARCHITECTURE.md; test on a real iPhone before calling it done.
 - ☐ **M3-3 Touch-up brush.** Erase / restore brush on the cutout for when automatic removal misses.
 - ☐ **M3-4 Capture guides.** Per-category ghost outlines and tips on the capture screen (TRY_ON §8).
 

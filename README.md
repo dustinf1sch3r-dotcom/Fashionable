@@ -15,6 +15,7 @@ ticketed but not built yet.
 | [docs/OUTFIT_ENGINE.md](docs/OUTFIT_ENGINE.md) | The rules that build and score outfits           |
 | [docs/TRY_ON.md](docs/TRY_ON.md)               | How garments are drawn on the silhouette         |
 | [docs/ROADMAP.md](docs/ROADMAP.md)             | Milestones and agent-sized tickets               |
+| [docs/LICENSES.md](docs/LICENSES.md)           | Licence register and pre-sale checklist          |
 | [CLAUDE.md](CLAUDE.md)                         | Rules and commands for coding agents             |
 
 ## Run it
@@ -23,6 +24,7 @@ ticketed but not built yet.
 npm install
 npm run web          # dev server in the browser
 npm run check        # typecheck + lint + unit tests
+npm run licenses     # fail if any dependency is not cleared for a sold app
 npm run build:web    # static site in dist/
 npm run e2e          # phone-viewport browser tests against dist/
 ```
@@ -34,5 +36,3 @@ npm run e2e          # phone-viewport browser tests against dist/
    account.
 2. **Supabase project** for sign-in and sync (milestone M8).
 3. **Apple Developer and Google Play accounts** for store builds (milestone M9).
-4. **Research tickets R1 and R2** need a session whose network allows `huggingface.co`,
-   `developers.google.com`, `developer.apple.com` and `open-meteo.com`.
