@@ -218,3 +218,28 @@ export interface GarmentWarper {
   /** Frees the resource behind a URI `render` returned (an object URL on web). Optional. */
   release?(uri: string): void;
 }
+
+/** Draws one merged outfit image (docs/TRY_ON.md §13.2). */
+export interface OutfitCompositor {
+  readonly available: boolean;
+  /**
+   * Merge the garment images (already positioned in mannequin units, bottom to top) into the
+   * backdrop. The output covers the whole 1000 × 2000 mannequin canvas at `pixelsPerUnit`.
+   */
+  compose(input: {
+    backdropUri: string;
+    kind: 'photo' | 'silhouette';
+    layers: readonly {
+      uri: string;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      rotation: number;
+    }[];
+    pixelsPerUnit: number;
+    seed: number;
+  }): Promise<{ uri: string }>;
+  /** Release an image returned by `compose`. */
+  release?(uri: string): void;
+}

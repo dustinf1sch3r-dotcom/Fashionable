@@ -13,3 +13,4 @@ export * from './engine';
 export * from './weather';
 export * from './gaps';
 export * from './fit';
+export * from './composite';

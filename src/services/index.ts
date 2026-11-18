@@ -7,12 +7,14 @@ import { createAsyncStorageKv, createRepository } from './storage';
 import { createLocationService } from './location';
 import { createBodyPhotoCropper, createPoseDetector } from './pose';
 import { createGarmentWarper } from './fit';
+import { createOutfitCompositor } from './composite';
 import { createOpenMeteoProvider } from './weather';
 import { createSystemClock, createIdGenerator } from './system';
 import {
   createFakeBackgroundRemover,
   createFakeBodyPhotoCropper,
   createFakeGarmentWarper,
+  createFakeOutfitCompositor,
   createFakePoseDetector,
   createFakeLocationService,
   createFakePixelReader,
@@ -29,6 +31,7 @@ import type {
   Clock,
   GarmentWarper,
   IdGenerator,
+  OutfitCompositor,
   ImageStore,
   KeyValueStore,
   LocationService,
@@ -45,6 +48,7 @@ export type {
   Clock,
   CutoutResult,
   GarmentWarper,
+  OutfitCompositor,
   IdGenerator,
   ImageStore,
   KeyValueStore,
@@ -76,6 +80,7 @@ export interface Services {
   pose: PoseDetector;
   bodyCrop: BodyPhotoCropper;
   warper: GarmentWarper;
+  compositor: OutfitCompositor;
   weather: WeatherProvider;
   location: LocationService;
   clock: Clock;
@@ -95,6 +100,7 @@ function build(
   pose: PoseDetector,
   bodyCrop: BodyPhotoCropper,
   warper: GarmentWarper,
+  compositor: OutfitCompositor,
   weather: WeatherProvider,
   location: LocationService,
   clock: Clock,
@@ -116,6 +122,7 @@ function build(
     pose,
     bodyCrop,
     warper,
+    compositor,
     weather,
     location,
     clock,
@@ -137,6 +144,7 @@ export function createServices(options: ServicesOptions = {}): Services {
     createPoseDetector(),
     createBodyPhotoCropper(),
     createGarmentWarper(),
+    createOutfitCompositor(),
     createOpenMeteoProvider({ kv, clock }),
     createLocationService(),
     clock,
@@ -159,6 +167,7 @@ export function createTestServices(
     createFakePoseDetector(),
     createFakeBodyPhotoCropper(),
     createFakeGarmentWarper(),
+    createFakeOutfitCompositor(),
     createFakeWeatherProvider(),
     createFakeLocationService(),
     overrides.clock ?? createFixedClock(),

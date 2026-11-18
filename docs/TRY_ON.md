@@ -450,3 +450,41 @@ need a leg gap and skirts must not have one, otherwise `detectRig` returns undef
   waist: 2.6 waist widths) is a midi and the green dress (360 px long, 75 px between the straps) a
   maxi on this body. The rigid placement (§5) hides this by scaling to the hem width. They are
   tested as such; regenerate the fixtures if a knee-length skirt is wanted in the gallery.
+
+## 13. Compositing: garments merged into the picture
+
+Owner decisions: outfits are drawn as one merged image, not garments pasted on top. Wanted:
+lighting and shading, colour matching, soft edges and contact shadows (no extra segmentation model).
+Realism first: the layered version shows instantly and the merged image replaces it when ready
+(cached). Applies to both the body photo and the silhouette.
+
+### 13.1 Pipeline (`src/core/composite/`, pure)
+
+Input: the backdrop (body photo, or the rendered silhouette) as RGBA at output size; the garment
+layers (fitted or rigid images) already positioned in output pixels, in z order; the backdrop kind.
+For each layer, bottom to top:
+
+1. **Colour matching (photo only).** Estimate the photo's illuminant cast (robust grey-world over
+   the whole photo, clamped to ±15% per channel) and overall exposure; apply the cast to the garment
+   and move its exposure part of the way (strength 0.5) toward the photo's. Never change a
+   garment's own colour identity: a white tee stays white-ish, just lit like the photo.
+2. **Shading.** Photo: shading map = low-pass luminance of the backdrop under the garment, divided
+   by its mean over the garment area (so it averages 1), clamped [0.6, 1.25]; plus a small
+   high-pass component for folds. Multiply the garment by the map with strength 0.7. Silhouette:
+   synthetic "pillow" shading from the distance to the garment's own edge (rounded look) plus a
+   gentle top-left light; strength 0.35.
+3. **Sharpness and grain (photo only).** Blur the garment to the photo's estimated sharpness, then
+   add grain matching the photo's noise level (seeded, deterministic).
+4. **Soft edges.** Feather the garment alpha by about 1 output pixel (scaled with output density).
+5. **Contact shadow.** Before drawing the layer, darken what lies beneath it by a blurred copy of
+   its alpha (radius about 1.5% of the canvas width, opacity 0.25; on the silhouette 0.2).
+6. Composite the layer (normal alpha "over").
+
+All strengths and sizes live in one `COMPOSITE_RULES` table. Same inputs and seed → same pixels.
+
+### 13.2 Rendering and caching (`src/services/composite/`)
+
+The web compositor decodes the backdrop and layer images to RGBA (canvas), runs the core pipeline,
+and encodes one image. It is cached by backdrop, body, the layers' cache keys and density. The
+Mannequin shows the layered version until the merged image is ready, then fades to it. While a
+garment is being edited (Mix fit editor, garment points), the layered version is shown.
