@@ -73,7 +73,7 @@ All in `src/core`. Verify with `npm run check`.
   photo. Depends on M2-2, M2-3.
 - ☑ **M2-6 Backup.** Export closet (JSON + images) to one backup file and import it back; Profile tab entry.
   Depends on M2-2.
-- ☐ **M2-7 Deploy the web build.** Publish `dist/` on every push to `main` to a static host chosen
+- ☑ **M2-7 Deploy the web build.** (live on GitHub Pages; original icon, `app/+html.tsx` + `public/manifest.webmanifest`, no service worker; real-phone install untested) Publish `dist/` on every push to `main` to a static host chosen
   by the owner, with web-app manifest and icons so "Add to Home Screen" gives a full-screen app.
   **Needs the owner to pick and set up the host** (see README "Open decisions").
 

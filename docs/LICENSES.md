@@ -82,18 +82,18 @@ Rejected, with reasons: `@imgly/background-removal` (AGPL-3.0), BRIA RMBG 1.4 / 
 
 ### Assets
 
-| Asset                                          | Source                          | Licence | Status                                                      |
-| ---------------------------------------------- | ------------------------------- | ------- | ----------------------------------------------------------- |
-| App icon, splash, favicon in `assets/images/`  | Expo's default project template | MIT     | **Placeholders — replace with our own artwork before sale** |
-| Tab icons (Ionicons, via `@expo/vector-icons`) | Ionic                           | MIT     | OK                                                          |
-| Fonts                                          | System fonts only               | —       | OK                                                          |
+| Asset                                          | Source                                                                                                        | Licence | Status |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------- | ------ |
+| App icon, splash, favicon, web icons           | Original hanger artwork drawn in this repo (`assets/brand/*.svg`, PNGs rendered by `scripts/render-icons.js`) | Ours    | OK     |
+| Tab icons (Ionicons, via `@expo/vector-icons`) | Ionic                                                                                                         | MIT     | OK     |
+| Fonts                                          | System fonts only                                                                                             | —       | OK     |
 
 ## Pre-sale checklist
 
 - [ ] Move weather to Open-Meteo's paid plan (commercial licence) or another provider whose terms
       have been read by the owner; keep the attribution.
 - [ ] Move hosting off GitHub Pages.
-- [ ] Replace placeholder icon and splash artwork with original artwork.
+- [x] Replace placeholder icon and splash artwork with original artwork (M2-7).
 - [ ] Lawyer review of this file, including the training-data question for the cutout models and
       the Google ML Kit / Google APIs terms.
 - [ ] Generate the third-party notices screen from the installed packages (most permissive
