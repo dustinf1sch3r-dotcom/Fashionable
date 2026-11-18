@@ -263,6 +263,14 @@ provider whose terms the owner has read. This is a config change, not a rewrite,
 only talks to `WeatherProvider`. `npm run licenses` cannot detect this; it is on the pre-sale
 checklist in docs/LICENSES.md.
 
+Implementation: endpoints live only in `src/services/weather/config.ts`; mapping is pure code in
+`src/core/weather`. `feelsLikeC` = `0.7 * apparent_temperature_max + 0.3 * apparent_temperature_min`
+(daytime-weighted); `isSunny` = WMO weather code 0-2; `precipProbability` = Open-Meteo percent / 100.
+The provider never rejects: offline, timeout (8 s) or an error status gives `undefined` and the
+engine runs without weather. Cache (key-value store, key `weather:<lat>,<lon>` at 2 decimals):
+14 days per fetch; today is stale after 3 hours, other days when the local date changes; a stale
+entry is still used when a refresh fails.
+
 Cache one forecast per location per day. If location permission is refused, the user types a city
 (geocoded by the provider) or the engine runs without weather.
 

@@ -64,7 +64,7 @@ width (`shoulderR.x − shoulderL.x`), `H` = hip width, `W` = waist width.
 | Slot                  | Centre X        | Top Y             | Width                         | Z   |
 | --------------------- | --------------- | ----------------- | ----------------------------- | --- |
 | `legs` (socks/tights) | body centre     | `knee.y`          | `H × 1.0`                     | 10  |
-| `shoes`               | body centre     | `ankle.y − 40`    | `(footR.x − footL.x) + 220`   | 20  |
+| `shoes`               | body centre     | `ankle.y − 30`    | `(footR.x − footL.x) + 120`   | 20  |
 | `bottom`              | body centre     | `waist.y − 20`    | `H × 1.25`                    | 30  |
 | `base`                | body centre     | `neckBase.y − 10` | `S × 1.55` (includes sleeves) | 40  |
 | `onepiece`            | body centre     | `neckBase.y − 10` | `S × 1.55`                    | 40  |

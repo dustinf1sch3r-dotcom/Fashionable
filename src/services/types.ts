@@ -1,4 +1,5 @@
-import type { Entity, ID } from '@/core/model/types';
+import type { Entity, ID, ISODate, Weather } from '@/core/model/types';
+import type { GeocodeResult } from '@/core/weather';
 
 export type { Clock, IdGenerator } from '@/core/model/ports';
 
@@ -76,4 +77,29 @@ export interface BackgroundRemover {
    * finds no garment; callers then fall back to the original with `hasAlpha: false`.
    */
   remove(imageUri: string, onProgress?: (fraction: number) => void): Promise<CutoutResult>;
+}
+
+export type { GeocodeResult };
+
+/** Daily weather and place search (docs/ARCHITECTURE.md "Weather"). Never rejects. */
+export interface WeatherProvider {
+  /**
+   * Forecast for `date` (device-local `YYYY-MM-DD`, within the next ~14 days) at the location, from
+   * the cache when fresh. `undefined` when offline, timed out, refused or out of range.
+   */
+  forecast(lat: number, lon: number, date: ISODate): Promise<Weather | undefined>;
+  /** Places matching a typed name, best first. `[]` when nothing matches or on any failure. */
+  geocode(query: string): Promise<GeocodeResult[]>;
+}
+
+export type PositionResult =
+  | { status: 'ok'; lat: number; lon: number }
+  /** The user refused permission. */
+  | { status: 'denied' }
+  /** No position could be had (no GPS, timeout, unsupported). */
+  | { status: 'unavailable' };
+
+/** The device's current position. Never rejects. */
+export interface LocationService {
+  getCurrentPosition(): Promise<PositionResult>;
 }

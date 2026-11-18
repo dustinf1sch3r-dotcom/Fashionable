@@ -41,7 +41,8 @@ describe('anchors', () => {
       width: 340 * 1.25,
       z: 30,
     });
-    expect(anchorFor('shoes', BODY_A)).toEqual({ centerX: 500, topY: 1820, width: 440, z: 20 });
+    // ankle.y 1860 − 30; foot gap 220 + 120 (tuned down from +220: shoes were wider than the calves).
+    expect(anchorFor('shoes', BODY_A)).toEqual({ centerX: 500, topY: 1830, width: 340, z: 20 });
     expect(anchorFor('bag', BODY_A)).toEqual({ centerX: 850, topY: 980, width: 260, z: 80 });
     expect(anchorFor('wrist', BODY_A)).toEqual({ centerX: 210, topY: 1010, width: 70, z: 75 });
   });

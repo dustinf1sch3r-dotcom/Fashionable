@@ -14,6 +14,8 @@ export const colors = {
   success: '#17693A',
   warning: '#8A4B00',
   danger: '#B3261E',
+  /** Flat fill of the mannequin body silhouette (docs/TRY_ON.md §3). */
+  silhouette: '#C9CCD1',
   /** Dark scrim behind sheets; deliberately translucent. */
   scrim: 'rgba(27, 27, 31, 0.45)',
 } as const;

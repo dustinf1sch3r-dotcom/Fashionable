@@ -31,11 +31,12 @@ build tools that are not part of the app's own code:
 
 ### Runtime packages added on purpose
 
-| Package                                     | Licence | Why                                  |
-| ------------------------------------------- | ------- | ------------------------------------ |
-| `zustand`                                   | MIT     | App state stores                     |
-| `@react-native-async-storage/async-storage` | MIT     | On-device record storage             |
-| `expo-file-system`                          | MIT     | On-device image files (store builds) |
+| Package                                     | Licence | Why                                          |
+| ------------------------------------------- | ------- | -------------------------------------------- |
+| `zustand`                                   | MIT     | App state stores                             |
+| `@react-native-async-storage/async-storage` | MIT     | On-device record storage                     |
+| `expo-file-system`                          | MIT     | On-device image files (store builds)         |
+| `expo-location`                             | MIT     | Device position (browser Geolocation on web) |
 
 Dev-only (not shipped): `@testing-library/react-native` (MIT), `fake-indexeddb` (Apache-2.0),
 `@playwright/test` (Apache-2.0), `serve` (MIT).

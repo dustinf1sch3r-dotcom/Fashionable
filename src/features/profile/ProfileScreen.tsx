@@ -4,6 +4,7 @@ import { Card } from '@/ui/Card';
 import { Screen } from '@/ui/Screen';
 import { colors, spacing, typography } from '@/ui/theme';
 import { getStores, hydrateAll, useCloset, useOutfits, useProfile } from '@/state';
+import { LocationUnitsCard } from '@/features/weather';
 import { BackupCard } from './BackupCard';
 import { ImportSheet } from './ImportSheet';
 import { useBackup } from './useBackup';
@@ -34,6 +35,7 @@ export function ProfileScreen() {
             {plural(outfitCount, 'outfit', 'outfits')}
           </Text>
         </Card>
+        <LocationUnitsCard />
         <BackupCard
           phase={backup.phase}
           notice={backup.notice}

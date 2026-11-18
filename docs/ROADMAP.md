@@ -90,9 +90,9 @@ All in `src/core`. Verify with `npm run check`.
 
 ## M4 — Mannequin and Mix
 
-- ☐ **M4-1 Silhouette asset.** `body-a` SVG drawn to the landmark table from M1-7, plus a debug
+- ☑ **M4-1 Silhouette asset.** `body-a` SVG drawn to the landmark table from M1-7, plus a debug
   overlay toggle that draws landmarks and anchor boxes.
-- ☐ **M4-2 Mannequin component.** `ui/Mannequin.tsx` per TRY_ON §9; component test that placements
+- ☑ **M4-2 Mannequin component.** `ui/Mannequin.tsx` per TRY_ON §9; component test that placements
   map to the right styles; `/dev/mannequin` route rendering the fixture closet.
 - ☐ **M4-3 Fit editor.** Select, drag, scale, rotate; save to item or outfit; reset (TRY_ON §6).
 - ☐ **M4-4 Mix screen.** One swipeable row per slot under/over the mannequin, lock and shuffle per
@@ -100,7 +100,7 @@ All in `src/core`. Verify with `npm run check`.
 
 ## M5 — Outfit generator
 
-- ☐ **M5-1 Weather service.** `WeatherProvider` (Open-Meteo), location permission with typed-city
+- ☑ **M5-1 Weather service.** `WeatherProvider` (Open-Meteo), location permission with typed-city
   fallback, daily cache, attribution on the weather card.
 - ☐ **M5-2 Outfits screen.** Occasion chips, weather card, "Surprise me", result cards with
   mannequin preview, score and plain-language reasons (`features/outfits/reasonText.ts`), pin an

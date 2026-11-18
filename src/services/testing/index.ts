@@ -7,3 +7,5 @@ export type { MemoryKv } from './memoryKv';
 export { createSequentialIds } from './sequentialIds';
 export { createFakePixelReader } from './fakePixelReader';
 export { createFakeBackgroundRemover } from './fakeBackgroundRemover';
+export { createFakeWeatherProvider, createFakeLocationService } from './fakeWeather';
+export type { FakeWeatherProvider, FakeLocationService } from './fakeWeather';

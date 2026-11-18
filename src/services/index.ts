@@ -4,10 +4,14 @@ import { createImageStore } from './images';
 import { createBackgroundRemover } from './cutout';
 import { createPixelReader } from './pixels';
 import { createAsyncStorageKv, createRepository } from './storage';
+import { createLocationService } from './location';
+import { createOpenMeteoProvider } from './weather';
 import { createSystemClock, createIdGenerator } from './system';
 import {
   createFakeBackgroundRemover,
+  createFakeLocationService,
   createFakePixelReader,
+  createFakeWeatherProvider,
   createFixedClock,
   createMemoryImageStore,
   createMemoryKv,
@@ -19,8 +23,10 @@ import type {
   IdGenerator,
   ImageStore,
   KeyValueStore,
+  LocationService,
   PixelReader,
   Repository,
+  WeatherProvider,
 } from './types';
 
 export type {
@@ -30,9 +36,13 @@ export type {
   IdGenerator,
   ImageStore,
   KeyValueStore,
+  GeocodeResult,
+  LocationService,
   PixelData,
   PixelReader,
+  PositionResult,
   Repository,
+  WeatherProvider,
 } from './types';
 
 export interface Services {
@@ -44,6 +54,8 @@ export interface Services {
   images: ImageStore;
   pixels: PixelReader;
   cutout: BackgroundRemover;
+  weather: WeatherProvider;
+  location: LocationService;
   clock: Clock;
   ids: IdGenerator;
 }
@@ -57,6 +69,8 @@ function build(
   images: ImageStore,
   pixels: PixelReader,
   cutout: BackgroundRemover,
+  weather: WeatherProvider,
+  location: LocationService,
   clock: Clock,
   ids: IdGenerator,
   onError: ServicesOptions['onStorageError'],
@@ -72,6 +86,8 @@ function build(
     images,
     pixels,
     cutout,
+    weather,
+    location,
     clock,
     ids,
   };
@@ -80,12 +96,16 @@ function build(
 /** Real services: AsyncStorage records, platform image store, system clock and UUIDs. */
 export function createServices(options: ServicesOptions = {}): Services {
   const ids = createIdGenerator();
+  const kv = createAsyncStorageKv();
+  const clock = createSystemClock();
   return build(
-    createAsyncStorageKv(),
+    kv,
     createImageStore({ ids }),
     createPixelReader(),
     createBackgroundRemover(),
-    createSystemClock(),
+    createOpenMeteoProvider({ kv, clock }),
+    createLocationService(),
+    clock,
     ids,
     options.onStorageError,
   );
@@ -101,6 +121,8 @@ export function createTestServices(
     createMemoryImageStore(ids),
     createFakePixelReader(),
     createFakeBackgroundRemover(),
+    createFakeWeatherProvider(),
+    createFakeLocationService(),
     overrides.clock ?? createFixedClock(),
     ids,
     undefined,

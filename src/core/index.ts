@@ -10,4 +10,5 @@ export * from './color/classify';
 export * from './color/palette';
 export * from './color/harmony';
 export * from './engine';
+export * from './weather';
 export * from './gaps';
