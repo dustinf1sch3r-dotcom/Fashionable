@@ -1,0 +1,264 @@
+# Outfit Engine Specification
+
+The engine is deterministic, rule-based TypeScript living in `src/core/engine/`. It has no I/O: it
+takes a closet, a context and a seed, and returns ranked outfits with reasons. Same inputs → same
+outputs, always. That property is what makes it testable; do not break it (no `Math.random()`, no
+`Date.now()` inside `src/core`).
+
+All numeric constants below are **defaults**. They live in one file, `src/core/engine/weights.ts`,
+so tuning never requires touching logic.
+
+## 1. Public API
+
+```ts
+generateOutfits(input: {
+  items: Item[];            // the whole closet
+  wearLogs: WearLog[];      // for freshness
+  feedback: Feedback[];     // for taste
+  context: {
+    date: ISODate;
+    occasion: Occasion;     // 'any' | 'casual' | 'work' | 'smart' | 'formal' | 'active' | 'lounge'
+    weather?: Weather;      // omitted → weather component is skipped
+    pinnedItemIds?: ID[];   // must appear in every result
+    excludeItemIds?: ID[];
+  };
+  count: number;            // how many outfits to return (default 5)
+  seed: number;
+}): OutfitSuggestion[];
+
+scoreOutfit(items: Item[], context, history): ScoreBreakdown;   // used by Mix screen's live meter
+
+interface OutfitSuggestion {
+  itemIds: ID[];
+  score: number;                 // 0–100
+  breakdown: ScoreBreakdown;     // per-component 0–1 values + weights used
+  reasons: Reason[];             // { code: ReasonCode; params: Record<string,string|number> }
+}
+```
+
+Reasons are **codes with parameters**, never English sentences. The UI layer owns the wording
+(`src/features/outfits/reasonText.ts`), which keeps the core translatable.
+
+## 2. Slots
+
+`slotOf(item)` maps an item to exactly one slot:
+
+| Slot       | Items                                                           | Max per outfit |
+| ---------- | --------------------------------------------------------------- | -------------- |
+| `base`     | tops with `layer: 'base'` (tee, shirt, blouse, tank, polo)      | 1              |
+| `mid`      | tops with `layer: 'mid'` (sweater, cardigan, hoodie, waistcoat) | 1              |
+| `bottom`   | trousers, jeans, shorts, skirts                                 | 1              |
+| `onepiece` | dresses, jumpsuits, dungarees                                   | 1              |
+| `outer`    | coats, jackets, blazers                                         | 1              |
+| `shoes`    | all footwear                                                    | 1              |
+| `legs`     | socks, tights                                                   | 1              |
+| `belt`     | belts                                                           | 1              |
+| `bag`      | bags                                                            | 1              |
+| `head`     | hats, caps, beanies                                             | 1              |
+| `neck`     | scarves, ties                                                   | 1              |
+| `eyes`     | glasses, sunglasses                                             | 1              |
+| `wrist`    | watches                                                         | 1              |
+| `jewelry`  | necklaces, earrings, bracelets, rings                           | 3              |
+
+## 3. Pipeline
+
+```
+closet ─► eligibility filter ─► core combos ─► score ─► keep best K ─► dress up ─► re-score ─► diversify ─► results
+```
+
+1. **Eligibility filter (hard rules, per item).** Drop items that are not `status: 'active'`,
+   are excluded, fall outside the occasion's formality range (§5), or break a weather hard rule
+   (§6). Pinned items are never dropped; if a pinned item breaks a hard rule, keep it and emit a
+   `PINNED_OVERRIDE` reason.
+2. **Core combos.** Two templates:
+   - `separates`: `base` × `bottom` × `shoes`
+   - `onepiece`: `onepiece` × `shoes`
+
+   If the cartesian product exceeds `MAX_CORE_COMBOS` (5,000), sample that many uniformly with the
+   seeded RNG instead of enumerating. Pinned items constrain their slot to a single choice.
+
+3. **Score** each core combo (§4) and keep the best `BEAM_WIDTH` (200).
+4. **Dress up.** For each kept combo, consider optional slots in this order: `outer`, `mid`, `belt`,
+   `neck`, `head`, `bag`, `wrist`, `eyes`, `legs`, `jewelry`. A slot is:
+   - **required** when weather demands it (§6) — pick the best-scoring eligible item; if none
+     exists, keep the combo but emit `MISSING_LAYER`;
+   - **optional** otherwise — add the best-scoring item only if it raises the outfit score by at
+     least `ADD_ON_MIN_GAIN` (1.0 point). Belts are only considered when the bottom's subcategory is
+     belt-compatible (trousers, jeans, chinos, shorts, belt-looped skirts).
+5. **Re-score** complete outfits.
+6. **Diversify** with maximal marginal relevance: repeatedly pick the candidate maximising
+   `λ·score − (1−λ)·100·maxJaccard(candidate, alreadyPicked)` with `λ = 0.7`, until `count` are
+   chosen. Ties break by seeded RNG.
+
+If the closet cannot fill a template (e.g. no shoes), return an empty list plus a
+`ClosetTooSmall` diagnostic naming the missing slots, so the UI can say "add some shoes".
+
+## 4. Scoring
+
+Outfit score = 100 × weighted mean of components, each in [0, 1]. A component that does not apply
+(no weather supplied, no history yet) is left out and the remaining weights are renormalised.
+
+| Component      | Weight | What it measures                                  |
+| -------------- | ------ | ------------------------------------------------- |
+| `colour`       | 0.30   | Colour harmony across the visible pieces (§4.1)   |
+| `formality`    | 0.20   | Pieces sit at a similar dress level (§4.2)        |
+| `weather`      | 0.15   | Warmth and rain suitability for the forecast (§6) |
+| `pattern`      | 0.10   | Pattern mixing is under control (§4.3)            |
+| `occasion`     | 0.10   | Closeness to the occasion's ideal formality (§5)  |
+| `coordination` | 0.05   | Leathers and metals agree (§4.4)                  |
+| `freshness`    | 0.05   | Not a recent repeat (§4.5)                        |
+| `taste`        | 0.05   | Learned from thumbs up / down (§7)                |
+
+### 4.1 Colour harmony
+
+Each item contributes its **primary colour** (largest `share`), plus its secondary colour if that
+share ≥ 0.25. Jewellery, watches and eyewear are ignored for colour.
+
+Classify each colour (in `src/core/color/classify.ts`):
+
+- **neutral**: black, white, grey (saturation < 0.12), navy, beige / tan / khaki / cream, brown,
+  olive. Items with `material: 'denim'` count as neutral whatever their hue.
+- **accent**: everything else, described by hue (0–360°), saturation and lightness.
+
+Group accents into **hue families**: two accents belong to one family if their hue distance ≤ 30°.
+
+| Situation                                                            | Score |
+| -------------------------------------------------------------------- | ----- |
+| Only neutrals                                                        | 0.80  |
+| Neutrals + one accent family                                         | 0.92  |
+| One accent family, no neutrals (monochrome), lightness spread ≥ 0.15 | 0.90  |
+| One accent family, no neutrals, flat lightness                       | 0.70  |
+| Two families, hue distance 150–180° (complementary)                  | 0.82  |
+| Two families, hue distance 105–135° (triadic-ish)                    | 0.68  |
+| Two families, hue distance 31–60° (near-analogous)                   | 0.75  |
+| Two families, anything else                                          | 0.45  |
+| Three or more families                                               | 0.20  |
+
+Adjustments, then clamp to [0, 1]:
+
+- **+0.05** if the lightest and darkest large pieces (`base`/`bottom`/`onepiece`/`outer`) differ in
+  lightness by ≥ 0.35 (contrast reads as intentional).
+- **−0.15** if two accents differ in saturation by ≥ 0.5 (neon next to pastel).
+- **−0.10** if top and bottom are the same neutral at nearly the same lightness (< 0.08 apart) and
+  it is not black-on-black or a matching set — near-misses look like a mistake.
+- **+0.05** if shoes, belt or bag repeat an accent family found in a main piece (colour echo).
+
+Emit one reason: `COLOR_NEUTRAL_BASE`, `COLOR_ACCENT_POP`, `COLOR_MONOCHROME`,
+`COLOR_COMPLEMENTARY`, `COLOR_ANALOGOUS`, `COLOR_TRIADIC`, `COLOR_CLASH`, with colour names as
+params.
+
+### 4.2 Formality cohesion
+
+Formality is 1 (lounge) to 5 (formal). Take the items in `base`, `mid`, `bottom`, `onepiece`,
+`outer`, `shoes`; let `spread = max − min`.
+
+| Spread | Score |
+| ------ | ----- |
+| 0      | 1.00  |
+| 1      | 0.90  |
+| 2      | 0.55  |
+| 3      | 0.20  |
+| 4      | 0.00  |
+
+One deliberate high-low pairing is fashionable: if spread is 2 and exactly one item is the outlier
+(e.g. blazer with tee and jeans, sneakers with a suit), use 0.75 and emit `FORMALITY_HIGH_LOW`.
+
+### 4.3 Pattern balance
+
+Count patterned pieces among `base`, `mid`, `bottom`, `onepiece`, `outer`, `neck`.
+
+| Patterned pieces                                      | Score |
+| ----------------------------------------------------- | ----- |
+| 0                                                     | 0.85  |
+| 1                                                     | 1.00  |
+| 2, different pattern types, at most one `patternBold` | 0.70  |
+| 2, same type or both bold                             | 0.35  |
+| 3+                                                    | 0.10  |
+
+### 4.4 Coordination
+
+Average of the checks that apply (if none apply, the component is skipped):
+
+- **Leathers:** belt and shoes both leather/suede → 1.0 if their colours are the same neutral
+  family (black with black, brown with brown/tan), else 0.3.
+- **Metals:** all items with a `metal` value share it → 1.0; mixed → 0.5.
+- **Bag:** bag colour matches shoes or belt family, or is a neutral → 1.0; else 0.6.
+
+### 4.5 Freshness
+
+Let `d` = days since this exact item set was last worn, and `r` = share of the outfit's main pieces
+worn in the last 3 days.
+
+`freshness = clamp(min(d, 14) / 14, 0, 1) × (1 − 0.5·r)`; never worn → 1.0.
+
+## 5. Occasions
+
+| Occasion | Allowed formality | Ideal | Notes                                                              |
+| -------- | ----------------- | ----- | ------------------------------------------------------------------ |
+| `any`    | 1–5               | —     | occasion component skipped                                         |
+| `lounge` | 1–2               | 1     |                                                                    |
+| `casual` | 1–3               | 2     |                                                                    |
+| `active` | 1–2               | 1     | only items flagged `sporty`; skip `belt`, `jewelry`, `neck`        |
+| `work`   | 3–4               | 3.5   |                                                                    |
+| `smart`  | 3–4               | 3.5   | date night / dinner; pattern score of 1 patterned piece gets +0.05 |
+| `formal` | 4–5               | 4.5   |                                                                    |
+
+Occasion score = `1 − |mean formality of main pieces − ideal| / 2`, clamped to [0, 1].
+
+## 6. Weather
+
+`Weather = { tempMinC, tempMaxC, feelsLikeC, precipProbability (0–1), windKph, isSunny }`.
+
+Warmth is 1 (sheer / summer) to 5 (heavy winter). Bands use `feelsLikeC`:
+
+| Feels like | Layers                                                            | Hard rules                 | Target mean warmth |
+| ---------- | ----------------------------------------------------------------- | -------------------------- | ------------------ |
+| ≥ 27°C     | no `mid`, no `outer`                                              | exclude warmth ≥ 4         | 1.5                |
+| 20–26°C    | `outer` optional (warmth ≤ 2)                                     | exclude warmth 5           | 2                  |
+| 13–19°C    | `mid` or `outer` required                                         | exclude warmth 1 bottoms   | 3                  |
+| 5–12°C     | `outer` required, `mid` optional                                  | exclude open shoes, shorts | 3.5                |
+| < 5°C      | `outer` (warmth ≥ 4) and `mid` required; `neck`/`head` encouraged | as above                   | 4.5                |
+
+Rain (`precipProbability ≥ 0.5`): exclude items with `rainOk: false` from `shoes`, `outer`, `bag`.
+Sun (`isSunny` and ≥ 20°C): `eyes` (sunglasses) and `head` gain +1 point when added.
+
+Weather score = `1 − |mean warmth of worn layers − target| / 2`, clamped; multiply by 0.5 if a
+required layer is missing.
+
+## 7. Learning taste (no AI)
+
+`Feedback = { itemIds, verdict: 'like' | 'dislike' }`. Build two affinity tables from all feedback:
+
+- **Item pairs:** for each unordered pair in the outfit, +1 for like, −1 for dislike.
+- **Attribute pairs:** the same, keyed by `(slot:colourFamily, slot:colourFamily)` so that taste
+  generalises to items the user has never rated together.
+
+`taste = sigmoid(0.6 · meanItemPairAffinity + 0.4 · meanAttrPairAffinity)`. With no feedback the
+component is skipped. An outfit explicitly disliked (exact same item set) is never suggested again.
+
+## 8. Gap analysis (`src/core/gaps/`)
+
+```ts
+findGaps(items, opts): GapSuggestion[]   // { archetype, unlockedCount, exampleOutfit }
+findOrphans(items, opts): OrphanReport[] // { itemId, goodOutfitCount, wouldHelp: Archetype[] }
+```
+
+- `archetypes.ts` holds ~40 staple pieces as attribute-only virtual items (white tee, dark jeans,
+  white sneakers, brown leather belt, navy blazer, black ankle boots, beige trench…).
+- An archetype is **covered** if the closet already has an item with the same subcategory and
+  colour family; covered archetypes are skipped.
+- For each remaining archetype: count core combos scoring ≥ `GOOD_OUTFIT_THRESHOLD` (70) with and
+  without it (occasion `any`, no weather, enumeration capped at `MAX_CORE_COMBOS`). The difference
+  is `unlockedCount`. Return the top 5 with one example outfit each.
+- **Orphans:** active main-slot items that appear in fewer than 3 good outfits.
+
+## 9. Testing requirements
+
+- A fixture closet of ~30 realistic items in `src/core/testing/fixtures.ts`, shared by all tests.
+- Unit tests per scoring component, each table row above covered by at least one case.
+- Property tests: results never contain two items in one single-capacity slot; pinned items always
+  present; excluded items never present; same seed → identical output; different seeds → not all
+  identical.
+- Golden test: fixture closet + fixed context + seed → snapshot of the top 5 item-ID lists. A
+  golden change must be explained in the PR description.
+- Performance: 300-item closet generates 5 outfits in under 150 ms on the CI runner.
