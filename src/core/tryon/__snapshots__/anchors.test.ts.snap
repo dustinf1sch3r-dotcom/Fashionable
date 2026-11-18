@@ -1,0 +1,204 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`anchors ANCHOR_RULES snapshot 1`] = `
+{
+  "bag": {
+    "topOffset": -60,
+    "widthFixed": 260,
+    "xOffset": 60,
+    "z": 80,
+  },
+  "base": {
+    "topOffset": -10,
+    "widthMul": 1.55,
+    "z": 40,
+  },
+  "belt": {
+    "topOffset": -15,
+    "widthMul": 1.15,
+    "z": 45,
+  },
+  "bottom": {
+    "topOffset": -20,
+    "widthMul": 1.25,
+    "z": 30,
+  },
+  "eyes": {
+    "topOffset": -25,
+    "widthMul": 0.9,
+    "z": 92,
+  },
+  "head": {
+    "topOffset": -60,
+    "widthMul": 1.3,
+    "z": 90,
+  },
+  "jewelry": {
+    "topOffset": 0,
+    "widthMul": 0.35,
+    "z": 72,
+  },
+  "legs": {
+    "topOffset": 0,
+    "widthMul": 1,
+    "z": 10,
+  },
+  "mid": {
+    "topOffset": -20,
+    "widthMul": 1.65,
+    "z": 50,
+  },
+  "neck": {
+    "topOffset": 0,
+    "widthMul": 0.6,
+    "z": 70,
+  },
+  "onepiece": {
+    "topOffset": -10,
+    "widthMul": 1.55,
+    "z": 40,
+  },
+  "outer": {
+    "topOffset": -30,
+    "widthMul": 1.8,
+    "z": 60,
+  },
+  "shoes": {
+    "topOffset": -40,
+    "widthAdd": 220,
+    "widthMul": 1,
+    "z": 20,
+  },
+  "wrist": {
+    "topOffset": -30,
+    "widthFixed": 70,
+    "z": 75,
+  },
+}
+`;
+
+exports[`anchors anchorFor(bag) on BODY_A snapshot 1`] = `
+{
+  "centerX": 850,
+  "topY": 980,
+  "width": 260,
+  "z": 80,
+}
+`;
+
+exports[`anchors anchorFor(base) on BODY_A snapshot 1`] = `
+{
+  "centerX": 500,
+  "topY": 362,
+  "width": 589,
+  "z": 40,
+}
+`;
+
+exports[`anchors anchorFor(belt) on BODY_A snapshot 1`] = `
+{
+  "centerX": 500,
+  "topY": 785,
+  "width": 345,
+  "z": 45,
+}
+`;
+
+exports[`anchors anchorFor(bottom) on BODY_A snapshot 1`] = `
+{
+  "centerX": 500,
+  "topY": 780,
+  "width": 425,
+  "z": 30,
+}
+`;
+
+exports[`anchors anchorFor(eyes) on BODY_A snapshot 1`] = `
+{
+  "centerX": 500,
+  "topY": 171,
+  "width": 146.16,
+  "z": 92,
+}
+`;
+
+exports[`anchors anchorFor(head) on BODY_A snapshot 1`] = `
+{
+  "centerX": 500,
+  "topY": 20,
+  "width": 211.11999999999998,
+  "z": 90,
+}
+`;
+
+exports[`anchors anchorFor(jewelry) on BODY_A snapshot 1`] = `
+{
+  "centerX": 500,
+  "topY": 372,
+  "width": 133,
+  "z": 72,
+}
+`;
+
+exports[`anchors anchorFor(legs) on BODY_A snapshot 1`] = `
+{
+  "centerX": 500,
+  "topY": 1400,
+  "width": 340,
+  "z": 10,
+}
+`;
+
+exports[`anchors anchorFor(mid) on BODY_A snapshot 1`] = `
+{
+  "centerX": 500,
+  "topY": 352,
+  "width": 627,
+  "z": 50,
+}
+`;
+
+exports[`anchors anchorFor(neck) on BODY_A snapshot 1`] = `
+{
+  "centerX": 500,
+  "topY": 312,
+  "width": 228,
+  "z": 70,
+}
+`;
+
+exports[`anchors anchorFor(onepiece) on BODY_A snapshot 1`] = `
+{
+  "centerX": 500,
+  "topY": 362,
+  "width": 589,
+  "z": 40,
+}
+`;
+
+exports[`anchors anchorFor(outer) on BODY_A snapshot 1`] = `
+{
+  "centerX": 500,
+  "topY": 342,
+  "width": 684,
+  "z": 60,
+}
+`;
+
+exports[`anchors anchorFor(shoes) on BODY_A snapshot 1`] = `
+{
+  "centerX": 500,
+  "topY": 1820,
+  "width": 440,
+  "z": 20,
+}
+`;
+
+exports[`anchors anchorFor(wrist) on BODY_A snapshot 1`] = `
+{
+  "centerX": 210,
+  "topY": 1010,
+  "width": 70,
+  "z": 75,
+}
+`;

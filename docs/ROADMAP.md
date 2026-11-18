@@ -49,7 +49,7 @@ All in `src/core`. Verify with `npm run check`.
   test (§9). Depends on M1-4.
 - ☐ **M1-6 Taste learning.** ∥ `engine/taste.ts`: affinity tables and taste score (§7); never
   re-suggest an exact disliked set. Depends on M1-4.
-- ☐ **M1-7 Try-on maths.** ∥ `tryon/bodies.ts` (landmarks for `body-a`), `tryon/anchors.ts`,
+- ☑ **M1-7 Try-on maths.** ∥ `tryon/bodies.ts` (landmarks for `body-a`), `tryon/anchors.ts`,
   `tryon/place.ts` (TRY_ON §3–5) with snapshot test of the anchor table. Depends on M1-1.
 
 ## M2 — Closet (first thing usable on a phone)
