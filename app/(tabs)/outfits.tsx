@@ -1,5 +1,5 @@
-import { Placeholder } from '@/ui/Placeholder';
+import { OutfitsScreen } from '@/features/outfits';
 
-export default function OutfitsScreen() {
-  return <Placeholder title="Outfits" testID="screen-outfits" />;
+export default function OutfitsRoute() {
+  return <OutfitsScreen />;
 }

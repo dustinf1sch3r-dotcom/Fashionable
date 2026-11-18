@@ -18,7 +18,8 @@ export interface Anchor {
 export const ANCHOR_RULES = {
   legs: { z: 10, topOffset: 0, widthMul: 1.0 }, // knee.y, H
   // Foot gap + about one foot width: a pair drawn side by side covers both feet without spilling.
-  shoes: { z: 20, topOffset: -30, widthMul: 1, widthAdd: 120 }, // ankle.y, foot gap + 120
+  // z 35: drawn over trouser hems (they otherwise hide the shoes entirely), under tops and dresses.
+  shoes: { z: 35, topOffset: -30, widthMul: 1, widthAdd: 120 }, // ankle.y, foot gap + 120
   bottom: { z: 30, topOffset: -20, widthMul: 1.25 }, // waist.y, H
   base: { z: 40, topOffset: -10, widthMul: 1.55 }, // neckBase.y, S
   onepiece: { z: 40, topOffset: -10, widthMul: 1.55 }, // neckBase.y, S

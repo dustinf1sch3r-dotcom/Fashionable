@@ -67,7 +67,7 @@ exports[`anchors ANCHOR_RULES snapshot 1`] = `
     "topOffset": -30,
     "widthAdd": 120,
     "widthMul": 1,
-    "z": 20,
+    "z": 35,
   },
   "wrist": {
     "topOffset": -30,
@@ -190,7 +190,7 @@ exports[`anchors anchorFor(shoes) on BODY_A snapshot 1`] = `
   "centerX": 500,
   "topY": 1830,
   "width": 340,
-  "z": 20,
+  "z": 35,
 }
 `;
 

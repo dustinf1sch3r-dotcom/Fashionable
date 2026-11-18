@@ -102,10 +102,10 @@ All in `src/core`. Verify with `npm run check`.
 
 - ☑ **M5-1 Weather service.** `WeatherProvider` (Open-Meteo), location permission with typed-city
   fallback, daily cache, attribution on the weather card.
-- ☐ **M5-2 Outfits screen.** Occasion chips, weather card, "Surprise me", result cards with
+- ☑ **M5-2 Outfits screen.** Occasion chips, weather card, "Surprise me", result cards with
   mannequin preview, score and plain-language reasons (`features/outfits/reasonText.ts`), pin an
   item, regenerate, like / dislike, save. Clear guidance when the closet is too small.
-- ☐ **M5-3 Saved outfits.** List, rename, favourite, open in Mix, delete.
+- ☑ **M5-3 Saved outfits.** List, rename, favourite, open in Mix, delete.
 
 ## M6 — Calendar and wear history
 

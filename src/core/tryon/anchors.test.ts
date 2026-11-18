@@ -42,7 +42,7 @@ describe('anchors', () => {
       z: 30,
     });
     // ankle.y 1860 − 30; foot gap 220 + 120 (tuned down from +220: shoes were wider than the calves).
-    expect(anchorFor('shoes', BODY_A)).toEqual({ centerX: 500, topY: 1830, width: 340, z: 20 });
+    expect(anchorFor('shoes', BODY_A)).toEqual({ centerX: 500, topY: 1830, width: 340, z: 35 });
     expect(anchorFor('bag', BODY_A)).toEqual({ centerX: 850, topY: 980, width: 260, z: 80 });
     expect(anchorFor('wrist', BODY_A)).toEqual({ centerX: 210, topY: 1010, width: 70, z: 75 });
   });
@@ -59,7 +59,9 @@ describe('anchors', () => {
   it('gives every slot a distinct-or-intended z, ordered as the spec', () => {
     const z = (s: Slot): number => anchorFor(s, BODY_A).z;
     expect(z('legs')).toBeLessThan(z('shoes'));
-    expect(z('shoes')).toBeLessThan(z('bottom'));
+    // Shoes go over trouser hems (otherwise hidden), still under tops and dresses.
+    expect(z('shoes')).toBeGreaterThan(z('bottom'));
+    expect(z('shoes')).toBeLessThan(z('base'));
     expect(z('bottom')).toBeLessThan(z('base'));
     expect(z('base')).toBeLessThan(z('belt'));
     expect(z('belt')).toBeLessThan(z('mid'));

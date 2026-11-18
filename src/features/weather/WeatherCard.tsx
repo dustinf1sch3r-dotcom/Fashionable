@@ -74,8 +74,8 @@ export function WeatherCard({ date }: WeatherCardProps) {
     const message = errorText(error);
     body = (
       <View style={styles.gap}>
-        <Text style={styles.text} testID="weather-no-location">
-          Add your location to see the weather.
+        <Text style={styles.meta} testID="weather-no-location">
+          Add your location for weather-smart outfits.
         </Text>
         {message ? (
           <Text accessibilityRole="alert" style={styles.meta} testID="weather-message">
@@ -130,15 +130,18 @@ export function WeatherCard({ date }: WeatherCardProps) {
   return (
     <Card testID="weather-card">
       {body}
-      <Pressable
-        accessibilityRole="link"
-        accessibilityLabel={`${ATTRIBUTION_TEXT} (opens open-meteo.com)`}
-        onPress={() => void Linking.openURL(ATTRIBUTION_URL)}
-        style={styles.attribution}
-        testID="weather-attribution"
-      >
-        <Text style={styles.link}>{ATTRIBUTION_TEXT}</Text>
-      </Pressable>
+      {/* Attribution is owed wherever forecast data is shown, so only with a forecast. */}
+      {weather ? (
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel={`${ATTRIBUTION_TEXT} (opens open-meteo.com)`}
+          onPress={() => void Linking.openURL(ATTRIBUTION_URL)}
+          style={styles.attribution}
+          testID="weather-attribution"
+        >
+          <Text style={styles.link}>{ATTRIBUTION_TEXT}</Text>
+        </Pressable>
+      ) : null}
       <LocationSheet visible={sheetOpen} onClose={() => setSheetOpen(false)} />
     </Card>
   );

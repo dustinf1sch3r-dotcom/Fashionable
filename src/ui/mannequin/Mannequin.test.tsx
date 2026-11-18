@@ -37,7 +37,7 @@ describe('Mannequin', () => {
       .map((i) => ({ slot: slotOf(i), z: styleOf(i.id).zIndex as number }))
       .sort((a, b) => a.z - b.z)
       .map((x) => x.slot);
-    expect(order).toEqual(['shoes', 'bottom', 'base', 'belt']);
+    expect(order).toEqual(['bottom', 'shoes', 'base', 'belt']);
   });
 
   it('applies rotation from the item fit', async () => {

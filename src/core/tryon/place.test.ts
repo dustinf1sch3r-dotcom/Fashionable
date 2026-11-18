@@ -115,7 +115,7 @@ describe('placeOutfit', () => {
 
   it('sorts a full outfit by z', () => {
     const ps = placeOutfit(items, BODY_A);
-    expect(ids(ps)).toEqual(['sock', 'shoes', 'jeans', 'tee', 'sweater', 'coat', 'bag', 'hat']);
+    expect(ids(ps)).toEqual(['sock', 'jeans', 'shoes', 'tee', 'sweater', 'coat', 'bag', 'hat']);
     const zs = ps.map((p) => p.z);
     expect([...zs].sort((x, y) => x - y)).toEqual(zs);
   });
@@ -125,7 +125,7 @@ describe('placeOutfit', () => {
     const tee = ps.find((p) => p.itemId === 'tee');
     expect(tee?.z).toBe(25);
     expect(ids(ps).indexOf('tee')).toBeLessThan(ids(ps).indexOf('jeans'));
-    expect(ids(ps).indexOf('tee')).toBeGreaterThan(ids(ps).indexOf('shoes'));
+    expect(ids(ps).indexOf('tee')).toBeGreaterThan(ids(ps).indexOf('sock'));
   });
 
   it('does not tuck mid layers or one-pieces', () => {
