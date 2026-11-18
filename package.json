@@ -49,7 +49,8 @@
     "format:check": "prettier --check .",
     "test": "jest",
     "e2e": "playwright test",
-    "check": "npm run typecheck && npm run lint && npm test"
+    "check": "npm run typecheck && npm run lint && npm test",
+    "licenses": "node scripts/check-licenses.js"
   },
   "private": true
 }

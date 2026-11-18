@@ -29,7 +29,7 @@ Every ticket's definition of done includes the checklist in CLAUDE.md ("Definiti
 
 All in `src/core`. Verify with `npm run check`.
 
-- ☐ **M1-1 Taxonomy, factories, validation.** `model/taxonomy.ts` (subcategories per category with
+- ☑ **M1-1 Taxonomy, factories, validation.** `model/taxonomy.ts` (subcategories per category with
   default `layer`, `formality`, `warmth`, `rainOk`, belt-compatibility; display labels stay in UI),
   `model/slots.ts` (`slotOf`, slot capacities per OUTFIT_ENGINE §2), `model/validate.ts` (runtime
   guards for every entity; used when loading stored data), `model/factories.ts` (`newItem`,
@@ -54,14 +54,14 @@ All in `src/core`. Verify with `npm run check`.
 
 ## M2 — Closet (first thing usable on a phone)
 
-- ☐ **M2-1 Storage services.** `services/storage/` AsyncStorage `Repository` with schema version and
+- ☑ **M2-1 Storage services.** `services/storage/` AsyncStorage `Repository` with schema version and
   migrations; `services/images/` `ImageStore` for web (IndexedDB) and native (file system);
   in-memory fakes in `services/testing/`; `services/index.ts` wiring. Tests against fakes and, for
   web, an e2e that reloads the page and finds the data still there.
 - ☐ **M2-2 Stores.** `state/closetStore.ts`, `outfitStore.ts`, `wearStore.ts`, `profileStore.ts`:
   hydrate on start, debounced persist, actions (add, update, soft-delete, set status). Store tests
   with fakes. Depends on M2-1, M1-1.
-- ☐ **M2-3 UI kit.** ∥ `src/ui`: Button, Chip, ChipGroup, Card, TextField, SegmentedControl, Sheet,
+- ☑ **M2-3 UI kit.** ∥ `src/ui`: Button, Chip, ChipGroup, Card, TextField, SegmentedControl, Sheet,
   EmptyState, ColorDot, Rating5 (for formality/warmth). Theme tokens only, no hard-coded colours;
   44 pt minimum touch targets; a `/dev/ui` route listing every component for screenshot review.
 - ☐ **M2-4 Add item flow.** Camera or library pick (`expo-image-picker`) → preview → colour
