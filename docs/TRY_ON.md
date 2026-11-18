@@ -147,8 +147,7 @@ the garment is still in front of them.
 
 **Phase 3 — your own photo.** Specified in §11 (tickets T1–T2 in the roadmap).
 
-**Phase 4 — better drape.** Scale garment width from the user's shoulder/hip proportions; simple
-perspective or mesh warp per garment so sleeves follow the arms.
+**Phase 4 — better drape.** Specified in §12 (tickets G1–G2 in the roadmap).
 
 **Out of scope:** generative virtual try-on. It would need a cloud model, which conflicts with the
 program-based principle; revisit only if the owner changes that principle.
@@ -254,3 +253,89 @@ Guide before picking: stand straight, arms slightly away from the body, whole bo
 feet, plain background, fitted clothes, phone at waist height about 2–3 m away (use a timer or ask
 a friend). Copy states plainly that the photo never leaves the phone except in backups the user
 exports. "Delete my photo" removes the image and the profile field.
+
+## 12. Fitting garments to the body
+
+Owner decisions: garments follow the body's shape (not just rigid scaling); garment key points are
+found automatically and the user only fixes them if needed; first for tops, bottoms, dresses and
+outerwear. Shoes, bags, hats, belts and jewellery keep the §4–§5 rigid placement for now.
+
+### 12.1 Garment rigs
+
+Each fitted item has a rig: named key points in the cutout's own space, normalised 0–1
+(origin top-left), stored as `Item.fit` (optional; no migration).
+
+| Rig kind   | Used for                                                      | Points                                                                                                           |
+| ---------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `top`      | base, mid and outer tops, jackets, coats                      | neckL, neckR, shoulderL, shoulderR, armpitL, armpitR, cuffOuterL, cuffInnerL, cuffOuterR, cuffInnerR, hemL, hemR |
+| `trousers` | jeans, trousers, chinos, shorts, leggings                     | waistL, waistR, hipL, hipR, crotch, hemOuterL, hemInnerL, hemOuterR, hemInnerR                                   |
+| `skirt`    | skirts                                                        | waistL, waistR, hipL, hipR, hemL, hemR                                                                           |
+| `dress`    | dresses (jumpsuits use `top` + `trousers` points: `jumpsuit`) | top points + waistL, waistR, hipL, hipR, hemL, hemR (sleeve points optional for sleeveless)                      |
+| `jumpsuit` | jumpsuits, dungarees                                          | top points + trousers points                                                                                     |
+
+`L` is the viewer's left, as for body landmarks. A garment is photographed flat, front up, so its
+viewer-left sleeve dresses the body's viewer-left arm.
+
+### 12.2 Automatic detection (`src/core/fit/detect.ts`, pure)
+
+Input: the cutout's alpha mask (width, height, alpha bytes). Per row, the opaque runs give the
+outline. Heuristics per kind:
+
+- **top:** neck = ends of the topmost opaque run's inner dip (the collar opening); shoulders = the
+  outline points just outside the neck where the top edge turns downward; sleeves = rows where the
+  silhouette is wider than the torso; armpit = the deepest concave corner between sleeve and torso
+  on each side; cuffs = the two outline points at the far end of each sleeve; hem = the bottom-most
+  row's ends.
+- **trousers:** waist = top row ends; crotch = the top of the gap where the mask first splits into
+  two legs; hips = outline ends at the crotch row; hems = each leg's bottom row, inner and outer.
+- **skirt:** waist = top row ends; hips = outline ends at 20% of the height; hem = bottom row ends.
+- **dress / jumpsuit:** top part as `top`; waist = the narrowest row between armpits and 60% of the
+  height; then skirt or trouser rules below the waist.
+
+Each detection returns a `confidence` 0–1 (outline sanity: symmetry, order, plausible ratios).
+Below `FIT_MIN_CONFIDENCE` the item still uses the rig but the item detail screen offers "Check
+garment points". Detection also runs lazily for existing items the first time they are drawn.
+
+### 12.3 Body targets (`src/core/fit/targets.ts`, pure)
+
+Fitting takes a `FitBody`: the body landmarks plus optional `elbowL` / `elbowR` (BlazePose 14 / 13,
+swapped like the others). They are kept out of `BodyLandmarks` so every core landmark stays
+required; photo elbows are stored as `Profile.bodyPhoto.elbows`, and `BODY_A` gets explicit values.
+Without them, the elbow is the shoulder–wrist midpoint.
+
+Garment lengths keep the garment's own proportions relative to its width, so a cropped tee stays
+cropped and a maxi skirt stays long. Key rules (constants in one `FIT_RULES` table):
+
+- **top:** neck points → either side of `neckBase`; shoulders → shoulder landmarks pushed out by
+  an ease of 6% of shoulder width (mid +10%, outer +16%); armpits → on the torso sides, 22% of the
+  shoulder-to-hip distance below the shoulders; sleeves → along the arm polyline
+  shoulder → elbow → wrist, sleeve length in body units = garment sleeve length ÷ garment shoulder
+  width × body shoulder width; hem → straight down, hem depth likewise from the garment's
+  shoulder-to-hem / shoulder-width ratio.
+- **trousers:** waist → waist landmarks with ease; hips → hip landmarks with ease; crotch → hip
+  midpoint, 12% of hip-to-knee below; each leg follows hip → knee → ankle, length from the garment's
+  outseam / waist-width ratio; hems straddle the leg line with the garment's hem width ratio.
+- **skirt / dress below the waist:** waist and hips as trousers; hem width and length from the
+  garment's own ratios, centred on the body.
+
+### 12.4 Warping (`src/core/fit/mls.ts`, pure)
+
+Moving Least Squares image deformation (similarity variant; Schaefer, McPhail & Warren, 2006)
+with the rig points as handles, evaluated on a grid mesh over the cutout (default 24 × 48 cells,
+plus extra handles along garment edges to stop bulging). Output: a mesh of source/target vertices
+and triangles in mannequin units. Pure and deterministic.
+
+### 12.5 Rendering
+
+The web renderer (`src/services/fit/`) draws the mesh triangle by triangle on a canvas with affine
+texture mapping (each triangle slightly expanded to hide seams), producing one image per garment
+in mannequin space plus its bounding box. Results are cached by item, cutout image, rig version and
+body. The Mannequin draws a fitted garment as that image at its box; `fitAdjust` nudges still apply
+on top. Items without a usable rig, unsupported kinds, and platforms without the renderer fall back
+to §5 rigid placement. Native rendering later via a mesh-capable drawing library behind the same
+interface.
+
+### 12.6 Editing
+
+Item detail → "Garment points": the cutout with draggable rig points (same handle and loupe
+component as §11.4), a live preview on the current body, and Reset to detected.

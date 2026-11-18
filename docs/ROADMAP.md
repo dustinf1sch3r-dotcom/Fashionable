@@ -166,6 +166,15 @@ config.**
   correct → save; retake; delete), `Mannequin` backdrop, `useBody` with the Me / Silhouette toggle on
   every full-size mannequin, backups include the photo.
 
+## G — Garments that fit the body (TRY_ON §12)
+
+- ☐ **G1 Fit core.** `src/core/fit/` rigs, automatic detection from the alpha mask, body targets
+  (with elbows added to body landmarks and pose mapping), MLS mesh deformation; thorough tests on
+  procedurally drawn garment masks.
+- ☐ **G2 Fit rendering and UI.** Web mesh renderer with caching, Mannequin draws fitted garments,
+  rigs computed when cutouts are made (lazily for existing items), "Garment points" editor on item
+  detail, screenshots on the silhouette and on a photo.
+
 ## Suggested order and parallelism
 
 ```

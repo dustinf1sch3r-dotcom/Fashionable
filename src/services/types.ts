@@ -1,4 +1,5 @@
 import type { CutoutCrop, Entity, ID, ISODate, Weather } from '@/core/model/types';
+import type { FitMesh } from '@/core/fit';
 import type { PixelRect, PoseKeypoint } from '@/core/tryon/pose';
 import type { GeocodeResult } from '@/core/weather';
 
@@ -182,4 +183,18 @@ export interface BodyPhotoCropper {
     window: PixelRect,
     output: { width: number; height: number; fill: string },
   ): Promise<{ uri: string; blob: Blob }>;
+}
+
+/** Draws a garment cutout warped by a fit mesh (docs/TRY_ON.md §12.5). */
+export interface GarmentWarper {
+  readonly available: boolean;
+  /**
+   * Render `cutoutUri` through `mesh` at `pixelsPerUnit` (mannequin units → output pixels).
+   * Returns an image covering `mesh.bounds`.
+   */
+  render(
+    cutoutUri: string,
+    mesh: FitMesh,
+    pixelsPerUnit: number,
+  ): Promise<{ uri: string; bounds: FitMesh['bounds'] }>;
 }

@@ -11,3 +11,4 @@ export { createFakeWeatherProvider, createFakeLocationService } from './fakeWeat
 export type { FakeWeatherProvider, FakeLocationService } from './fakeWeather';
 export { createFakeTouchupOpener } from './fakeTouchup';
 export * from './fakePose';
+export * from './fakeWarper';

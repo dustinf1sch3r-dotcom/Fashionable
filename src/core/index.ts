@@ -12,3 +12,4 @@ export * from './color/harmony';
 export * from './engine';
 export * from './weather';
 export * from './gaps';
+export * from './fit';

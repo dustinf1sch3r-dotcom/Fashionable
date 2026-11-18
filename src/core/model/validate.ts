@@ -207,6 +207,27 @@ function landmarks(o: Rec, add: Add): void {
   for (const k of LANDMARK_KEYS) point(o[k], k, add);
 }
 
+const RIG_KINDS = ['top', 'trousers', 'skirt', 'dress', 'jumpsuit'] as const;
+
+/** Garment rig (docs/TRY_ON.md §12.1): points normalised to the cutout, a little slack allowed. */
+function garmentRig(o: Rec, add: Add): void {
+  enumField(o, 'kind', RIG_KINDS, add, true);
+  num(o.version, 'version', add);
+  range(o.confidence, 'confidence', 0, 1, add);
+  reqBool(o, 'edited', add);
+  if (!isRec(o.points)) return add('points', o.points === undefined ? 'missing' : 'wrong_type');
+  for (const [name, v] of Object.entries(o.points)) {
+    point(v, `points.${name}`, add);
+    if (
+      isRec(v) &&
+      isNum(v.x) &&
+      isNum(v.y) &&
+      (v.x < -0.25 || v.x > 1.25 || v.y < -0.25 || v.y > 1.25)
+    )
+      add(`points.${name}`, 'out_of_range');
+  }
+}
+
 function weather(o: Rec, add: Add): void {
   for (const k of ['tempMinC', 'tempMaxC', 'feelsLikeC']) num(o[k], k, add);
   range(o.precipProbability, 'precipProbability', 0, 1, add);
@@ -293,6 +314,7 @@ export function validateItem(input: unknown): ValidationResult<Item> {
       });
     });
     nested(o, 'fitAdjust', add, false, fitAdjust);
+    nested(o, 'fit', add, false, garmentRig);
   });
 }
 
@@ -351,6 +373,10 @@ export function validateProfile(input: unknown): ValidationResult<Profile> {
       nested(b, 'landmarks', sub, true, landmarks);
       nested(b, 'detected', sub, false, landmarks);
       dateTime(b, 'takenAt', sub, false);
+      nested(b, 'elbows', sub, false, (e, esub) => {
+        point(e.elbowL, 'elbowL', esub);
+        point(e.elbowR, 'elbowR', esub);
+      });
     });
     enumField(o, 'tryOnMode', ['photo', 'silhouette'], add, false);
   });

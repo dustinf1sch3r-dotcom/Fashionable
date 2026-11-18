@@ -323,6 +323,35 @@ describe('validateItem', () => {
       'missing',
     );
     expectBad(validateItem(mutate(item(), { fitAdjust: 3 })), 'fitAdjust', 'wrong_type');
+    // Garment rig (docs/TRY_ON.md §12.1): optional, checked when present.
+    const rig = {
+      kind: 'top',
+      version: 1,
+      confidence: 0.8,
+      edited: false,
+      points: { shoulderL: { x: 0.1, y: 0.05 }, hemR: { x: 0.9, y: 1 } },
+    };
+    expect(validateItem(mutate(item(), { fit: rig })).ok).toBe(true);
+    expectBad(
+      validateItem(mutate(item(), { fit: { ...rig, kind: 'cape' } })),
+      'fit.kind',
+      'invalid_value',
+    );
+    expectBad(
+      validateItem(mutate(item(), { fit: { ...rig, confidence: 2 } })),
+      'fit.confidence',
+      'out_of_range',
+    );
+    expectBad(
+      validateItem(mutate(item(), { fit: { ...rig, points: { hemL: { x: 3, y: 0.5 } } } })),
+      'fit.points.hemL',
+      'out_of_range',
+    );
+    expectBad(
+      validateItem(mutate(item(), { fit: { ...rig, points: undefined } })),
+      'fit.points',
+      'missing',
+    );
   });
 });
 
@@ -522,6 +551,24 @@ describe('validateProfile', () => {
       ).ok,
     ).toBe(true);
     expectBad(validateProfile(mutate(p(), { tryOnMode: 'mirror' })), 'tryOnMode', 'invalid_value');
+    expect(
+      validateProfile(
+        mutate(p(), {
+          bodyPhoto: {
+            imageId: 'i',
+            landmarks,
+            elbows: { elbowL: { x: 250, y: 720 }, elbowR: { x: 750, y: 720 } },
+          },
+        }),
+      ).ok,
+    ).toBe(true);
+    expectBad(
+      validateProfile(
+        mutate(p(), { bodyPhoto: { imageId: 'i', landmarks, elbows: { elbowL: { x: 1, y: 2 } } } }),
+      ),
+      'bodyPhoto.elbows.elbowR',
+      'missing',
+    );
     expectBad(
       validateProfile(
         mutate(p(), { bodyPhoto: { imageId: 'i', landmarks, takenAt: 'yesterday' } }),

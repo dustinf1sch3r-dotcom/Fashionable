@@ -6,11 +6,13 @@ import { createPixelReader, createTouchupOpener } from './pixels';
 import { createAsyncStorageKv, createRepository } from './storage';
 import { createLocationService } from './location';
 import { createBodyPhotoCropper, createPoseDetector } from './pose';
+import { createGarmentWarper } from './fit';
 import { createOpenMeteoProvider } from './weather';
 import { createSystemClock, createIdGenerator } from './system';
 import {
   createFakeBackgroundRemover,
   createFakeBodyPhotoCropper,
+  createFakeGarmentWarper,
   createFakePoseDetector,
   createFakeLocationService,
   createFakePixelReader,
@@ -25,6 +27,7 @@ import type {
   BackgroundRemover,
   BodyPhotoCropper,
   Clock,
+  GarmentWarper,
   IdGenerator,
   ImageStore,
   KeyValueStore,
@@ -41,6 +44,7 @@ export type {
   BodyPhotoCropper,
   Clock,
   CutoutResult,
+  GarmentWarper,
   IdGenerator,
   ImageStore,
   KeyValueStore,
@@ -70,6 +74,7 @@ export interface Services {
   cutout: BackgroundRemover;
   pose: PoseDetector;
   bodyCrop: BodyPhotoCropper;
+  warper: GarmentWarper;
   weather: WeatherProvider;
   location: LocationService;
   clock: Clock;
@@ -88,6 +93,7 @@ function build(
   cutout: BackgroundRemover,
   pose: PoseDetector,
   bodyCrop: BodyPhotoCropper,
+  warper: GarmentWarper,
   weather: WeatherProvider,
   location: LocationService,
   clock: Clock,
@@ -108,6 +114,7 @@ function build(
     cutout,
     pose,
     bodyCrop,
+    warper,
     weather,
     location,
     clock,
@@ -128,6 +135,7 @@ export function createServices(options: ServicesOptions = {}): Services {
     createBackgroundRemover(),
     createPoseDetector(),
     createBodyPhotoCropper(),
+    createGarmentWarper(),
     createOpenMeteoProvider({ kv, clock }),
     createLocationService(),
     clock,
@@ -149,6 +157,7 @@ export function createTestServices(
     createFakeBackgroundRemover(),
     createFakePoseDetector(),
     createFakeBodyPhotoCropper(),
+    createFakeGarmentWarper(),
     createFakeWeatherProvider(),
     createFakeLocationService(),
     overrides.clock ?? createFixedClock(),

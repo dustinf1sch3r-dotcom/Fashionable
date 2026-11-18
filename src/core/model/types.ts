@@ -151,6 +151,8 @@ export interface Item extends Entity {
     crop?: CutoutCrop;
   };
   fitAdjust?: FitAdjust;
+  /** Garment rig for fitting to the body (docs/TRY_ON.md §12). Optional; no migration. */
+  fit?: GarmentRig;
 }
 
 /** See `Item.cutout.crop`. All numbers finite, `width` / `height` / `scale` above 0. */
@@ -206,6 +208,21 @@ export interface Feedback extends Entity {
 
 // ── Try-on ──────────────────────────────────────────────────────────────────────────────────
 
+/** Garment shapes that can be fitted to the body (docs/TRY_ON.md §12.1). */
+export type RigKind = 'top' | 'trousers' | 'skirt' | 'dress' | 'jumpsuit';
+
+/** Named garment key points in the cutout's own space, normalised 0–1, origin top-left. */
+export interface GarmentRig {
+  kind: RigKind;
+  /** Rule-set version that produced the points; bump to re-detect. */
+  version: number;
+  points: Record<string, Point>;
+  /** 0–1: how sure automatic detection was. */
+  confidence: number;
+  /** True once the user has adjusted the points by hand (never overwritten by re-detection). */
+  edited: boolean;
+}
+
 /** A point on the 1000 × 2000 mannequin canvas (docs/TRY_ON.md §2). */
 export interface Point {
   x: number;
@@ -231,6 +248,16 @@ export interface BodyLandmarks {
   wristR: Point;
   footL: Point;
   footR: Point;
+}
+
+/**
+ * Body landmarks plus optional elbows for garment fitting (docs/TRY_ON.md §12.3). Elbows are kept
+ * out of `BodyLandmarks` so every core landmark stays required; without them the shoulder–wrist
+ * midpoint is used.
+ */
+export interface FitBody extends BodyLandmarks {
+  elbowL?: Point;
+  elbowR?: Point;
 }
 
 export interface BodyTemplate {
