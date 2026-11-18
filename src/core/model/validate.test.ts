@@ -507,6 +507,28 @@ describe('validateProfile', () => {
       'bodyPhoto.landmarks',
       'missing',
     );
+    // Phase 3 photo fields (docs/TRY_ON.md §11): optional, but checked when present.
+    expect(
+      validateProfile(
+        mutate(p(), {
+          bodyPhoto: {
+            imageId: 'i',
+            landmarks,
+            detected: landmarks,
+            takenAt: '2026-11-18T08:00:00Z',
+          },
+          tryOnMode: 'photo',
+        }),
+      ).ok,
+    ).toBe(true);
+    expectBad(validateProfile(mutate(p(), { tryOnMode: 'mirror' })), 'tryOnMode', 'invalid_value');
+    expectBad(
+      validateProfile(
+        mutate(p(), { bodyPhoto: { imageId: 'i', landmarks, takenAt: 'yesterday' } }),
+      ),
+      'bodyPhoto.takenAt',
+      'invalid_format',
+    );
     expectBad(
       validateProfile(
         mutate(p(), { bodyPhoto: { imageId: 'i', landmarks: { ...landmarks, chin: 5 } } }),

@@ -5,10 +5,13 @@ import { createBackgroundRemover } from './cutout';
 import { createPixelReader, createTouchupOpener } from './pixels';
 import { createAsyncStorageKv, createRepository } from './storage';
 import { createLocationService } from './location';
+import { createBodyPhotoCropper, createPoseDetector } from './pose';
 import { createOpenMeteoProvider } from './weather';
 import { createSystemClock, createIdGenerator } from './system';
 import {
   createFakeBackgroundRemover,
+  createFakeBodyPhotoCropper,
+  createFakePoseDetector,
   createFakeLocationService,
   createFakePixelReader,
   createFakeTouchupOpener,
@@ -20,12 +23,14 @@ import {
 } from './testing';
 import type {
   BackgroundRemover,
+  BodyPhotoCropper,
   Clock,
   IdGenerator,
   ImageStore,
   KeyValueStore,
   LocationService,
   PixelReader,
+  PoseDetector,
   Repository,
   TouchupOpener,
   WeatherProvider,
@@ -33,6 +38,7 @@ import type {
 
 export type {
   BackgroundRemover,
+  BodyPhotoCropper,
   Clock,
   CutoutResult,
   IdGenerator,
@@ -42,6 +48,7 @@ export type {
   LocationService,
   PixelData,
   PixelReader,
+  PoseDetector,
   PositionResult,
   Repository,
   TouchupImage,
@@ -61,6 +68,8 @@ export interface Services {
   pixels: PixelReader;
   touchup: TouchupOpener;
   cutout: BackgroundRemover;
+  pose: PoseDetector;
+  bodyCrop: BodyPhotoCropper;
   weather: WeatherProvider;
   location: LocationService;
   clock: Clock;
@@ -77,6 +86,8 @@ function build(
   pixels: PixelReader,
   touchup: TouchupOpener,
   cutout: BackgroundRemover,
+  pose: PoseDetector,
+  bodyCrop: BodyPhotoCropper,
   weather: WeatherProvider,
   location: LocationService,
   clock: Clock,
@@ -95,6 +106,8 @@ function build(
     pixels,
     touchup,
     cutout,
+    pose,
+    bodyCrop,
     weather,
     location,
     clock,
@@ -113,6 +126,8 @@ export function createServices(options: ServicesOptions = {}): Services {
     createPixelReader(),
     createTouchupOpener(),
     createBackgroundRemover(),
+    createPoseDetector(),
+    createBodyPhotoCropper(),
     createOpenMeteoProvider({ kv, clock }),
     createLocationService(),
     clock,
@@ -132,6 +147,8 @@ export function createTestServices(
     createFakePixelReader(),
     createFakeTouchupOpener(),
     createFakeBackgroundRemover(),
+    createFakePoseDetector(),
+    createFakeBodyPhotoCropper(),
     createFakeWeatherProvider(),
     createFakeLocationService(),
     overrides.clock ?? createFixedClock(),

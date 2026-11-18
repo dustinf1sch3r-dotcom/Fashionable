@@ -1,4 +1,5 @@
 import type { CutoutCrop, Entity, ID, ISODate, Weather } from '@/core/model/types';
+import type { PixelRect, PoseKeypoint } from '@/core/tryon/pose';
 import type { GeocodeResult } from '@/core/weather';
 
 export type { Clock, IdGenerator } from '@/core/model/ports';
@@ -160,4 +161,25 @@ export type PositionResult =
 /** The device's current position. Never rejects. */
 export interface LocationService {
   getCurrentPosition(): Promise<PositionResult>;
+}
+
+/** Raw pose detection on a photo (docs/TRY_ON.md §11.1). Web: MediaPipe; native: later. */
+export interface PoseDetector {
+  readonly available: boolean;
+  /** Download / warm up the model; progress 0–1. Safe to call repeatedly. */
+  prepare(onProgress?: (fraction: number) => void): Promise<void>;
+  /** Keypoints for the most prominent person, or `undefined` when nobody is found. */
+  detect(
+    imageUri: string,
+  ): Promise<{ keypoints: PoseKeypoint[]; width: number; height: number } | undefined>;
+}
+
+/** Crops a photo to a window (may extend past the edges; filled with `fill`) and scales it. */
+export interface BodyPhotoCropper {
+  readonly available: boolean;
+  crop(
+    imageUri: string,
+    window: PixelRect,
+    output: { width: number; height: number; fill: string },
+  ): Promise<{ uri: string; blob: Blob }>;
 }

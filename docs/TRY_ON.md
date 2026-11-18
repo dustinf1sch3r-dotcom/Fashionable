@@ -145,14 +145,85 @@ the garment is still in front of them.
 
 ## 10. Later phases
 
-**Phase 3 — your own photo.** The user uploads one standing, front-facing, full-body photo. An
-on-device pose detector returns body keypoints; we convert them to the same landmark table as a
-`BodyTemplate` (in the photo's own pixel space, normalised to 1000 × 2000) and store it on the
-profile. From then on the exact same anchor table and placement maths draw garments over the photo.
-The user can drag landmarks to correct detection. No generative imagery is involved.
+**Phase 3 — your own photo.** Specified in §11 (tickets T1–T2 in the roadmap).
 
 **Phase 4 — better drape.** Scale garment width from the user's shoulder/hip proportions; simple
 perspective or mesh warp per garment so sleeves follow the arms.
 
 **Out of scope:** generative virtual try-on. It would need a cloud model, which conflicts with the
 program-based principle; revisit only if the owner changes that principle.
+
+## 11. Try-on on your own photo (phase 3)
+
+Owner decisions: one body photo; it stays on the device and is included in backups; once added it
+is the default backdrop everywhere, with a quick "Me / Silhouette" toggle.
+
+### 11.1 Pose detection
+
+- Model: MediaPipe **Pose Landmarker (full)**, float16 `.task` file (~9.4 MB, Apache-2.0 per the
+  BlazePose GHUM 3D model card), run with `@mediapipe/tasks-vision` (Apache-2.0) in IMAGE mode,
+  on-device. Model and WASM are fetched at build time by `scripts/fetch-models.js` (pinned URL +
+  SHA-256) and served from our own site, like the cutout model. Loaded only when the user sets up
+  or redoes their photo.
+- Output: 33 BlazePose keypoints, normalised 0–1 in image space with a visibility score.
+- Native (later): Apple Vision body pose / ML Kit pose behind the same `PoseDetector` interface.
+
+### 11.2 Keypoints → body landmarks (`src/core/tryon/pose.ts`, pure)
+
+BlazePose "left" is the **person's** left, which in a front-facing photo is the **viewer's right**.
+Our `L` landmarks are the viewer's left, so BlazePose left joints map to our `R` and vice versa.
+
+| Landmark                       | From                                                                                              |
+| ------------------------------ | ------------------------------------------------------------------------------------------------- |
+| shoulderL / shoulderR          | right / left shoulder (12 / 11)                                                                   |
+| hipL / hipR                    | right / left hip (24 / 23)                                                                        |
+| kneeL / kneeR, ankleL / ankleR | 26 / 25, 28 / 27                                                                                  |
+| wristL / wristR                | 16 / 15                                                                                           |
+| footL / footR                  | midpoint of heel and foot index (30+32 / 29+31)                                                   |
+| eyeLine                        | midpoint of the eyes (2, 5)                                                                       |
+| neckBase                       | shoulder midpoint, raised by 12% of the shoulder-to-hip distance                                  |
+| chin                           | eyeLine + 0.45 × (eyeLine-to-neckBase distance), downwards                                        |
+| headTop                        | eyeLine − 0.9 × (ear-to-ear width), upwards; fall back to 0.55 × eye-to-chin if ears are hidden   |
+| waistL / waistR                | on the line shoulder→hip at 62% of the way down, pulled inwards so waist width = 0.85 × hip width |
+
+All constants live in one table so they can be tuned against real photos.
+
+**Quality checks** return problems the UI explains: `no-person`, `head-missing`, `feet-missing`
+(visibility < 0.5 for ankles/feet), `not-facing-camera` (shoulder width < 0.35 × shoulder-to-hip
+height), `arms-too-close` (wrists within 0.15 × shoulder width of the hips), `too-small` (person
+less than 50% of image height), `landmarks-out-of-order` (vertical order head → feet broken).
+`no-person` and `landmarks-out-of-order` block saving; the rest are warnings.
+
+### 11.3 Normalising the photo
+
+`bodyCropWindow` picks a 1:2 window around the person: from 6% of body height above `headTop` to
+4% below the lower foot, centred on the hip midpoint, widened to 1:2. Parts outside the photo are
+filled with the app background colour. The photo is cropped and scaled to **1000 × 2000 px** and
+saved as the body image, so landmarks transformed with `toCanvas` are directly in mannequin units
+and the existing anchors and placement maths work unchanged. Garment sizes follow the person's
+own shoulder, waist and hip widths automatically.
+
+### 11.4 Correction
+
+After detection the user sees the photo with draggable landmark handles (head top, chin, shoulders,
+waist, hips, knees, ankles, feet, wrists) and a live preview of a sample outfit. "Reset" returns to
+the detected points. Saved: `Profile.bodyPhoto = { imageId, landmarks, detected, takenAt }`.
+If detection fails entirely, the user can still place the handles by hand, starting from `BODY_A`
+scaled into the photo.
+
+### 11.5 Display
+
+- `useBody()` returns `{ body, backdrop, mode, setMode, hasPhoto }`: with a photo and mode
+  `'photo'` the body is `{ id: 'photo', landmarks }` and the backdrop is the photo; otherwise the
+  silhouette body template.
+- `Mannequin` accepts an optional `backdrop` (image URI) drawn instead of the silhouette, filling
+  the 1:2 canvas.
+- A small "Me / Silhouette" toggle appears wherever a full-size mannequin is shown (Outfits ideas,
+  outfit detail, Mix, calendar day). Mode is stored as `Profile.tryOnMode`.
+
+### 11.6 Capture guide and privacy
+
+Guide before picking: stand straight, arms slightly away from the body, whole body from head to
+feet, plain background, fitted clothes, phone at waist height about 2–3 m away (use a timer or ask
+a friend). Copy states plainly that the photo never leaves the phone except in backups the user
+exports. "Delete my photo" removes the image and the profile field.

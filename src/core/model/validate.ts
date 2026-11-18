@@ -349,7 +349,10 @@ export function validateProfile(input: unknown): ValidationResult<Profile> {
     nested(o, 'bodyPhoto', add, false, (b, sub) => {
       reqString(b, 'imageId', (_p, c) => sub('imageId', c), true);
       nested(b, 'landmarks', sub, true, landmarks);
+      nested(b, 'detected', sub, false, landmarks);
+      dateTime(b, 'takenAt', sub, false);
     });
+    enumField(o, 'tryOnMode', ['photo', 'silhouette'], add, false);
   });
 }
 

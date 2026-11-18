@@ -256,8 +256,18 @@ export interface Profile extends Entity {
   bodyTemplateId: string;
   location?: { lat: number; lon: number; label: string };
   units: 'metric' | 'imperial';
-  /** Phase 3: the user's own standing photo with detected (and user-corrected) landmarks. */
-  bodyPhoto?: { imageId: ID; landmarks: BodyLandmarks };
+  /**
+   * Phase 3 (docs/TRY_ON.md §11): the user's own standing photo, cropped to 1000 × 2000, with
+   * user-corrected `landmarks` and the original `detected` ones (for Reset), in mannequin units.
+   */
+  bodyPhoto?: {
+    imageId: ID;
+    landmarks: BodyLandmarks;
+    detected?: BodyLandmarks;
+    takenAt?: ISODateTime;
+  };
+  /** Draw outfits on the body photo or the silhouette (default 'photo' when a photo exists). */
+  tryOnMode?: 'photo' | 'silhouette';
   /** When the closet was last exported as a backup (optional; no migration needed). */
   lastBackupAt?: ISODateTime;
 }
