@@ -38,7 +38,7 @@ All in `src/core`. Verify with `npm run check`.
   `color/palette.ts` (seeded k-means palette extraction from RGBA per ARCHITECTURE §Image pipeline),
   `color/harmony.ts` (OUTFIT_ENGINE §4.1, returns score + reason). Test every table row; test
   palette extraction on synthetic pixel arrays (two-colour stripes, solid, noisy).
-- ☐ **M1-3 Fixture closet.** ∥ `testing/fixtures.ts`: ~30 realistic items covering every slot,
+- ☑ **M1-3 Fixture closet.** ∥ `testing/fixtures.ts`: ~30 realistic items covering every slot,
   several colour families, all formality and warmth levels; deterministic `Clock`, `IdGenerator`
   and seeded RNG (`testing/rng.ts`, mulberry32). Depends on M1-1.
 - ☐ **M1-4 Scoring components.** `engine/weights.ts`, `engine/score/*.ts` for formality, pattern,
