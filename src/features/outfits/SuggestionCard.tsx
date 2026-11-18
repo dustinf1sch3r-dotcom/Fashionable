@@ -20,6 +20,8 @@ interface SuggestionCardProps {
   /** The suggestion's items, in the order of `suggestion.itemIds`. */
   items: readonly Item[];
   body: BodyTemplate;
+  /** The person's photo, drawn instead of the silhouette. */
+  backdrop?: string;
   imageUris: Readonly<Record<ID, string | undefined>>;
   pinnedIds: readonly ID[];
   verdict: 'like' | 'dislike' | undefined;
@@ -39,6 +41,7 @@ export function SuggestionCard({
   suggestion,
   items,
   body,
+  backdrop,
   imageUris,
   pinnedIds,
   verdict,
@@ -60,6 +63,7 @@ export function SuggestionCard({
         <View style={styles.mannequin}>
           <Mannequin
             body={body}
+            {...(backdrop ? { backdrop } : {})}
             items={items}
             imageUris={imageUris}
             interactive={false}

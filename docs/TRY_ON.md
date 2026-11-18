@@ -194,6 +194,23 @@ height), `arms-too-close` (wrists within 0.15 × shoulder width of the hips), `t
 less than 50% of image height), `landmarks-out-of-order` (vertical order head → feet broken).
 `no-person` and `landmarks-out-of-order` block saving; the rest are warnings.
 
+Decisions made while implementing (constants in `POSE_RULES`, `src/core/tryon/pose.ts`):
+
+- `no-person` also covers a torso that is not seen: any shoulder or hip below 0.5 visibility, a
+  keypoint array shorter than 33, or non-finite values. No landmarks are returned then; for every
+  other problem they are, so the user can still correct by hand.
+- `arms-too-close` is measured sideways: a wrist below the shoulder line and less than 0.15 ×
+  shoulder width (horizontally) from its own hip. Raised hands never trigger it.
+- `not-facing-camera` uses the signed shoulder span, so a person facing away (left and right
+  reversed) is caught too. `head-missing` also fires when the computed head top is above the image;
+  `feet-missing` also when the lowest foot is below it, or one foot has neither heel nor toe seen.
+- Vertical order for `landmarks-out-of-order`: headTop, eyeLine, chin, neckBase, shoulders, waist,
+  hips, knees, ankles strictly increasing in y, and the feet no higher than the ankles.
+  `checkLandmarks` runs this, `not-facing-camera` and `arms-too-close`; the image-only checks
+  (visibility, framing, size) are in `fromBlazePose`.
+- The crop window is exactly 1:2 from the vertical margins (§11.3); it is not widened for a very
+  wide pose (arms far out), which would change the margins the spec fixes.
+
 ### 11.3 Normalising the photo
 
 `bodyCropWindow` picks a 1:2 window around the person: from 6% of body height above `headTop` to
@@ -220,6 +237,16 @@ scaled into the photo.
   the 1:2 canvas.
 - A small "Me / Silhouette" toggle appears wherever a full-size mannequin is shown (Outfits ideas,
   outfit detail, Mix, calendar day). Mode is stored as `Profile.tryOnMode`.
+- Decisions (T2): one toggle per screen, not per card (the mode is global), shown only when a
+  usable photo exists. A photo whose image is missing falls back to the silhouette and hides the
+  toggle. While the image loads the photo's landmarks are used with no backdrop so garments do not
+  jump. Insights keeps the silhouette (it draws archetype art, not the person).
+- Setup lives at `/me/photo` (`?step=adjust` opens the correction screen on the saved photo),
+  entered from the Profile card or a dismissible hint on Outfits. Where the detector is not
+  available the flow places points by hand starting from `defaultPhotoLandmarks()`; where the
+  cropper is not available the entry points say so instead of starting.
+- Retake saves the new image first and deletes the old one afterwards. Delete removes the image
+  and `bodyPhoto` / `tryOnMode` (`profileStore.removeBodyPhoto`).
 
 ### 11.6 Capture guide and privacy
 

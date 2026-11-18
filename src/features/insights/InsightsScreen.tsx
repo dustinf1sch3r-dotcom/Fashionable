@@ -8,7 +8,7 @@ import type { ID, Item } from '@/core/model/types';
 import { useClosetHydration } from '@/features/closet/list/useClosetHydration';
 import { itemDisplayName } from '@/features/closet/list/filter';
 import { subcategoryLabel } from '@/features/closet/labels';
-import { useBody } from '@/features/outfits/useBody';
+import { useSilhouetteBody } from '@/features/shared/useBody';
 import { useImageUris } from '@/features/shared/useImageUris';
 import { useCloset, useWear } from '@/state';
 import { Card } from '@/ui/Card';
@@ -129,7 +129,7 @@ export function InsightsScreen() {
   const items = useCloset((s) => s.items);
   const logs = useWear((s) => s.logs);
   const wearStatus = useWear((s) => s.status);
-  const body = useBody();
+  const body = useSilhouetteBody();
 
   const loaded = status === 'ready' && wearStatus === 'ready';
   const readiness = useMemo(() => closetReadiness(items), [items]);
@@ -224,7 +224,7 @@ interface SuggestionsProps {
   readiness: ReturnType<typeof closetReadiness>;
   items: readonly Item[];
   examples: ReadonlyMap<string, { items: Item[]; own: Item[] }>;
-  body: ReturnType<typeof useBody>;
+  body: ReturnType<typeof useSilhouetteBody>;
   imageUris: Readonly<Record<ID, string | undefined>>;
   byId: ReadonlyMap<ID, Item>;
   onOpenItem: (id: string) => void;

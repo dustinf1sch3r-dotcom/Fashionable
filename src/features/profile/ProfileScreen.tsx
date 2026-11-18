@@ -6,6 +6,7 @@ import { Card } from '@/ui/Card';
 import { Screen } from '@/ui/Screen';
 import { colors, iconSize, spacing, typography } from '@/ui/theme';
 import { getStores, hydrateAll, useCloset, useOutfits, useProfile } from '@/state';
+import { TryOnCard } from '@/features/me';
 import { LocationUnitsCard } from '@/features/weather';
 import { BackupCard } from './BackupCard';
 import { ImportSheet } from './ImportSheet';
@@ -56,6 +57,7 @@ export function ProfileScreen() {
             <Ionicons name="chevron-forward" size={iconSize.md} color={colors.textMuted} />
           </View>
         </Card>
+        <TryOnCard />
         <LocationUnitsCard />
         <BackupCard
           phase={backup.phase}

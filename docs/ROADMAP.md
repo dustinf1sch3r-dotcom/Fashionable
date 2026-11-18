@@ -159,10 +159,10 @@ config.**
 
 ## T — Try-on on your own photo (TRY_ON §11)
 
-- ☐ **T1 Pose core and detector.** `src/core/tryon/pose.ts` (keypoints → landmarks, quality checks,
+- ☑ **T1 Pose core and detector.** `src/core/tryon/pose.ts` (keypoints → landmarks, quality checks,
   crop window, canvas transform) with thorough tests; `src/services/pose/` web detector with
   MediaPipe Pose Landmarker served from our site; photo crop-to-canvas in `src/services/pixels`.
-- ☐ **T2 Setup, correction and display.** Profile entry and setup flow (guide → photo → detect →
+- ☑ **T2 Setup, correction and display.** Profile entry and setup flow (guide → photo → detect →
   correct → save; retake; delete), `Mannequin` backdrop, `useBody` with the Me / Silhouette toggle on
   every full-size mannequin, backups include the photo.
 

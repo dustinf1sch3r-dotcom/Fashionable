@@ -36,6 +36,17 @@ export function canvasToPng(canvas: HTMLCanvasElement): Promise<Blob> {
   });
 }
 
+/** JPEG encoding of a canvas (quality 0–1); rejects where the browser cannot encode it. */
+export function canvasToJpeg(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error('Could not encode the JPEG'))),
+      'image/jpeg',
+      quality,
+    );
+  });
+}
+
 /** RGBA pixels of the image squashed to `width` x `height` (aspect ratio not kept). */
 export function readSquashed(
   img: HTMLImageElement,

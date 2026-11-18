@@ -12,7 +12,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { scoreOutfit } from '@/core/engine/scoreOutfit';
 import type { FitAdjust, ID, Item, Outfit } from '@/core/model/types';
 import { localISODate } from '@/core/weather';
-import { getBody } from '@/core/tryon/bodies';
 import { IDENTITY_FIT } from '@/core/tryon/place';
 import { useWoreToday } from '@/features/calendar/useWoreToday';
 import { sameItems } from '@/features/calendar/wearLogic';
@@ -27,7 +26,9 @@ import { EmptyState } from '@/ui/EmptyState';
 import { effectiveFit, isIdentityFit, sameFit } from '@/ui/mannequin/fit';
 import { FitBar } from '@/ui/mannequin/FitBar';
 import { Mannequin } from '@/ui/mannequin/Mannequin';
+import { TryOnToggle } from '@/ui/TryOnToggle';
 import { colors, radius, spacing, typography } from '@/ui/theme';
+import { useBody } from '../shared/useBody';
 import { CompactButton } from './CompactButton';
 import { hasBaseTop, prunedOverrides } from './fitOverrides';
 import { MeterCard } from './MeterCard';
@@ -154,7 +155,7 @@ export function MixScreen() {
     [editingId, itemIds, tucked, overrides],
   );
   const cutoutUris = useImageUris(selection.map((i) => i.images.cutoutId));
-  const body = getBody('body-a');
+  const { body, backdrop, mode, setMode, hasPhoto } = useBody();
 
   const changed = () => {
     setStatus(undefined);
@@ -296,6 +297,7 @@ export function MixScreen() {
             {body ? (
               <Mannequin
                 body={body}
+                {...(backdrop ? { backdrop } : {})}
                 items={selection}
                 outfit={draft}
                 imageUris={cutoutUris}
@@ -310,6 +312,7 @@ export function MixScreen() {
             ) : null}
           </View>
           <View style={styles.side}>
+            <TryOnToggle mode={mode} onChange={setMode} visible={hasPhoto} fill />
             <MeterCard breakdown={breakdown} withWeather={weather !== undefined} />
             <Chip
               label="Tuck in top"

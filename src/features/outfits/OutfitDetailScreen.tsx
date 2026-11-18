@@ -17,17 +17,18 @@ import { Button } from '@/ui/Button';
 import { EmptyState } from '@/ui/EmptyState';
 import { IconButton } from '@/ui/IconButton';
 import { Mannequin } from '@/ui/mannequin';
+import { TryOnToggle } from '@/ui/TryOnToggle';
 import { colors, iconSize, minTouch, radius, spacing, typography } from '@/ui/theme';
 import { WoreTodayButton } from '../calendar/WoreTodayButton';
 import { subcategoryLabel } from '../closet/labels';
 import { itemDisplayName } from '../closet/list/filter';
 import { useClosetHydration } from '../closet/list/useClosetHydration';
+import { useBody } from '../shared/useBody';
 import { useImageUris } from '../shared/useImageUris';
 import { OCCASION_LABELS } from './missingSlots';
 import { autoName, outfitName } from './naming';
 import { outfitNote, resolveOutfitItems } from './outfitItems';
 import { RenameSheet } from './RenameSheet';
-import { useBody } from './useBody';
 
 const MANNEQUIN_WIDTH = 240;
 const ROW_THUMB = 52;
@@ -171,7 +172,7 @@ function DetailBody({
   onSaveName,
 }: DetailBodyProps) {
   const router = useRouter();
-  const body = useBody();
+  const { body, backdrop, mode, setMode, hasPhoto } = useBody();
   const allItems = useCloset((s) => s.items);
   const byId = useMemo(() => new Map(allItems.map((i) => [i.id, i])), [allItems]);
   const resolved = resolveOutfitItems(outfit.itemIds, byId);
@@ -205,6 +206,7 @@ function DetailBody({
         <View style={{ width: MANNEQUIN_WIDTH }}>
           <Mannequin
             body={body}
+            {...(backdrop ? { backdrop } : {})}
             items={resolved.items}
             outfit={outfit}
             imageUris={imageUris}
@@ -213,6 +215,7 @@ function DetailBody({
           />
         </View>
       </View>
+      <TryOnToggle mode={mode} onChange={setMode} visible={hasPhoto} />
 
       <Button
         label="Open in Mix"

@@ -1,4 +1,5 @@
 import { createTestServices } from '@/services';
+import { BODY_A } from '@/core/tryon/bodies';
 import { createProfileStore } from './profileStore';
 
 beforeEach(() => jest.useFakeTimers());
@@ -36,6 +37,25 @@ describe('profileStore', () => {
     const store = createProfileStore(createTestServices());
     store.getState().update({ displayName: 'x' });
     expect(store.getState().profile).toBeNull();
+  });
+
+  it('removeBodyPhoto drops the photo and mode, keeps the rest, and persists', async () => {
+    const services = createTestServices();
+    const store = createProfileStore(services);
+    await store.getState().hydrate();
+    store.getState().update({
+      displayName: 'Ada',
+      bodyPhoto: { imageId: 'me', landmarks: BODY_A.landmarks },
+      tryOnMode: 'photo',
+    });
+    store.getState().removeBodyPhoto();
+    const profile = store.getState().profile;
+    expect(profile?.displayName).toBe('Ada');
+    expect('bodyPhoto' in (profile ?? {})).toBe(false);
+    expect('tryOnMode' in (profile ?? {})).toBe(false);
+    await store.getState().flush();
+    const [stored] = await services.profile.list();
+    expect(stored.bodyPhoto).toBeUndefined();
   });
 
   it('reports write errors', async () => {

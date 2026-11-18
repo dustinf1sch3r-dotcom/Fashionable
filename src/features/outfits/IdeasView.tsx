@@ -6,9 +6,12 @@ import type { ID, Occasion, OutfitSuggestion } from '@/core/model/types';
 import { useCloset, useOutfits } from '@/state';
 import { Button } from '@/ui/Button';
 import { Chip } from '@/ui/Chip';
+import { TryOnToggle } from '@/ui/TryOnToggle';
 import { EmptyState } from '@/ui/EmptyState';
 import { colors, iconSize, minTouch, radius, spacing, typography } from '@/ui/theme';
+import { useBody } from '../shared/useBody';
 import { useImageUris } from '../shared/useImageUris';
+import { PhotoHint } from '../me';
 import { WeatherCard } from '../weather';
 import { itemDisplayName } from '../closet/list/filter';
 import { Carousel } from './Carousel';
@@ -16,7 +19,6 @@ import { newSeed } from './generateInput';
 import { OCCASION_LABELS, OCCASION_ORDER, tooSmallText } from './missingSlots';
 import { SuggestionCard } from './SuggestionCard';
 import { suggestionView } from './suggestionView';
-import { useBody } from './useBody';
 import { useSuggestions } from './useSuggestions';
 
 const NONE: readonly OutfitSuggestion[] = [];
@@ -32,7 +34,7 @@ interface IdeasViewProps {
 /** The "Ideas" tab: occasion, weather, Surprise me and the swipeable suggestions. */
 export function IdeasView({ onShowSaved }: IdeasViewProps) {
   const router = useRouter();
-  const body = useBody();
+  const { body, backdrop, mode, setMode, hasPhoto } = useBody();
   const [occasion, setOccasion] = useState<Occasion>('any');
   const [seed, setSeed] = useState<number>(newSeed);
   const [pinned, setPinned] = useState<ID[]>([]);
@@ -72,6 +74,7 @@ export function IdeasView({ onShowSaved }: IdeasViewProps) {
           suggestion={suggestion}
           items={items}
           body={body}
+          {...(backdrop ? { backdrop } : {})}
           imageUris={imageUris}
           pinnedIds={pinned}
           verdict={verdict}
@@ -195,6 +198,7 @@ export function IdeasView({ onShowSaved }: IdeasViewProps) {
           testID="outfits-surprise"
         />
       </View>
+      <PhotoHint />
       {pinnedItems.length > 0 ? (
         <View style={[styles.gutter, styles.pins]} testID="outfits-pins">
           <Text style={styles.sectionLabel}>Building around</Text>
@@ -217,6 +221,9 @@ export function IdeasView({ onShowSaved }: IdeasViewProps) {
             ))}
           </View>
         </View>
+      ) : null}
+      {view?.kind === 'ready' ? (
+        <TryOnToggle mode={mode} onChange={setMode} visible={hasPhoto} />
       ) : null}
       <View>{results}</View>
     </View>

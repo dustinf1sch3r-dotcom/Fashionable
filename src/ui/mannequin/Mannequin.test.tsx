@@ -40,6 +40,15 @@ describe('Mannequin', () => {
     expect(order).toEqual(['bottom', 'shoes', 'base', 'belt']);
   });
 
+  it('draws the backdrop photo only when given', async () => {
+    const { rerender } = await render(<Mannequin body={BODY_A} items={items} imageUris={uris} />);
+    expect(screen.queryByTestId('mannequin-backdrop')).toBeNull();
+    await rerender(<Mannequin body={BODY_A} items={items} imageUris={uris} backdrop="blob:me" />);
+    expect(screen.getByTestId('mannequin-backdrop').props.source).toEqual({ uri: 'blob:me' });
+    // Garments are still placed from the body landmarks.
+    expect(screen.getByTestId('mannequin-item-jeans-dark')).toBeTruthy();
+  });
+
   it('applies rotation from the item fit', async () => {
     const tee = {
       ...fixtureById('tee-white'),

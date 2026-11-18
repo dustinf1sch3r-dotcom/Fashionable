@@ -3,6 +3,7 @@ import { newItem, newOutfit, newProfile } from '@/core/model/factories';
 import type { Item } from '@/core/model/types';
 import { createTestServices } from '../index';
 import type { MemoryImageStore } from '../testing/memoryImageStore';
+import { BODY_A } from '@/core/tryon/bodies';
 import { exportBackup, importBackup, backupFilename } from './backupService';
 
 const PNG = [0x89, 0x50, 0x4e, 0x47, 1, 2, 3];
@@ -75,6 +76,36 @@ describe('exportBackup', () => {
     const out = await exportBackup(createTestServices());
     const doc = JSON.parse(await out.blob.text());
     expect(doc).toMatchObject({ items: [], images: {}, profile: null });
+  });
+});
+
+describe('body photo', () => {
+  it('is exported with the profile and restored into a fresh device', async () => {
+    const { services } = await seeded();
+    const images = services.images as MemoryImageStore;
+    await images.save(new Blob([new Uint8Array(PNG)], { type: 'image/png' }), { id: 'me-1' });
+    const [profile] = await services.profile.list();
+    await services.profile.put({
+      ...profile,
+      bodyPhoto: { imageId: 'me-1', landmarks: BODY_A.landmarks, detected: BODY_A.landmarks },
+      tryOnMode: 'silhouette',
+    });
+    const out = await exportBackup(services);
+    expect(out.missingImages).toEqual([]);
+    expect(out.counts.images).toBe(4);
+    const doc = JSON.parse(await out.blob.text());
+    expect(Object.keys(doc.images)).toContain('me-1');
+    expect(doc.profile.bodyPhoto.imageId).toBe('me-1');
+
+    const fresh = createTestServices();
+    const res = await importBackup(await out.blob.text(), 'replace', fresh);
+    expect(res.ok).toBe(true);
+    const [restored] = await fresh.profile.list();
+    expect(restored.bodyPhoto?.imageId).toBe('me-1');
+    expect(restored.bodyPhoto?.landmarks).toEqual(BODY_A.landmarks);
+    expect(restored.tryOnMode).toBe('silhouette');
+    const back = await fresh.images.read('me-1');
+    expect(new Uint8Array(await back.arrayBuffer())).toEqual(new Uint8Array(PNG));
   });
 });
 

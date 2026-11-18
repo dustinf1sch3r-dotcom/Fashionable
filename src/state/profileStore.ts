@@ -14,6 +14,8 @@ export interface ProfileState {
   /** Loads the profile; creates and saves a default one on first run. */
   hydrate(): Promise<void>;
   update(patch: ProfilePatch): void;
+  /** Forget the body photo and the try-on mode (the caller deletes the image). */
+  removeBodyPhoto(): void;
   flush(): Promise<void>;
 }
 
@@ -46,6 +48,16 @@ export function createProfileStore(services: Services): ProfileStore {
       const current = get().profile;
       if (!current) return;
       const next = touch({ ...current, ...patch }, clock);
+      set({ profile: next });
+      persister.put(next);
+    },
+    removeBodyPhoto() {
+      const current = get().profile;
+      if (!current) return;
+      const { bodyPhoto: _photo, tryOnMode: _mode, ...rest } = current;
+      void _photo;
+      void _mode;
+      const next = touch(rest, clock);
       set({ profile: next });
       persister.put(next);
     },

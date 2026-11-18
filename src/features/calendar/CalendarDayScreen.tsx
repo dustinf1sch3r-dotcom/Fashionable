@@ -21,12 +21,13 @@ import { Card } from '@/ui/Card';
 import { EmptyState } from '@/ui/EmptyState';
 import { IconButton } from '@/ui/IconButton';
 import { Mannequin } from '@/ui/mannequin';
+import { TryOnToggle } from '@/ui/TryOnToggle';
 import { colors, iconSize, minTouch, radius, spacing, typography } from '@/ui/theme';
 import { subcategoryLabel } from '../closet/labels';
 import { itemDisplayName } from '../closet/list/filter';
 import { autoName, outfitName } from '../outfits/naming';
 import { resolveOutfitItems } from '../outfits/outfitItems';
-import { useBody } from '../outfits/useBody';
+import { useBody, type UseBody } from '../shared/useBody';
 import { useImageUris } from '../shared/useImageUris';
 import { WeatherCard } from '../weather';
 import { ItemPickerSheet } from './ItemPickerSheet';
@@ -90,6 +91,7 @@ function DayBody({ date }: { date: ISODate }) {
   const router = useRouter();
   const { loading, logs: allLogs, byId } = useCalendarData();
   const outfits = useOutfits((s) => s.outfits);
+  const bodyView = useBody();
   const [notice, setNotice] = useState<Notice | undefined>();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
@@ -201,11 +203,20 @@ function DayBody({ date }: { date: ISODate }) {
                   today={today}
                   byId={byId}
                   outfits={outfits}
+                  bodyView={bodyView}
                   onDelete={() => remove(log, log.planned ? 'Plan removed.' : 'Log deleted.')}
                   onYes={() => confirmWorn(log)}
                   onNo={() => remove(log, 'Plan removed.')}
                 />
               ))}
+
+              {logs.length > 0 ? (
+                <TryOnToggle
+                  mode={bodyView.mode}
+                  onChange={bodyView.setMode}
+                  visible={bodyView.hasPhoto}
+                />
+              ) : null}
 
               {showForecast ? <WeatherCard date={date} /> : null}
 
@@ -261,14 +272,15 @@ interface DayLogProps {
   today: ISODate;
   byId: ReadonlyMap<ID, Item>;
   outfits: readonly Outfit[];
+  bodyView: UseBody;
   onDelete: () => void;
   onYes: () => void;
   onNo: () => void;
 }
 
-function DayLog({ log, today, byId, outfits, onDelete, onYes, onNo }: DayLogProps) {
+function DayLog({ log, today, byId, outfits, bodyView, onDelete, onYes, onNo }: DayLogProps) {
   const router = useRouter();
-  const body = useBody();
+  const { body, backdrop } = bodyView;
   const units = useProfile((s) => s.profile?.units ?? 'metric');
   const resolved = resolveOutfitItems(log.itemIds, byId);
   const imageUris = useImageUris(resolved.items.map((i) => i.images.cutoutId));
@@ -325,6 +337,7 @@ function DayLog({ log, today, byId, outfits, onDelete, onYes, onNo }: DayLogProp
           <View style={{ width: MANNEQUIN_WIDTH }}>
             <Mannequin
               body={body}
+              {...(backdrop ? { backdrop } : {})}
               items={resolved.items}
               {...(outfit ? { outfit } : {})}
               imageUris={imageUris}

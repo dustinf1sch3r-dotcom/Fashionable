@@ -31,12 +31,13 @@ build tools that are not part of the app's own code:
 
 ### Runtime packages added on purpose
 
-| Package                                     | Licence | Why                                          |
-| ------------------------------------------- | ------- | -------------------------------------------- |
-| `zustand`                                   | MIT     | App state stores                             |
-| `@react-native-async-storage/async-storage` | MIT     | On-device record storage                     |
-| `expo-file-system`                          | MIT     | On-device image files (store builds)         |
-| `expo-location`                             | MIT     | Device position (browser Geolocation on web) |
+| Package                                     | Licence    | Why                                                                                                 |
+| ------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------- |
+| `zustand`                                   | MIT        | App state stores                                                                                    |
+| `@react-native-async-storage/async-storage` | MIT        | On-device record storage                                                                            |
+| `expo-file-system`                          | MIT        | On-device image files (store builds)                                                                |
+| `expo-location`                             | MIT        | Device position (browser Geolocation on web)                                                        |
+| `@mediapipe/tasks-vision` 1.2.3 (exact)     | Apache-2.0 | Pose Landmarker runtime for the body photo (TRY_ON §11); loaded lazily, never in the initial bundle |
 
 Dev-only (not shipped): `@testing-library/react-native` (MIT), `fake-indexeddb` (Apache-2.0),
 `@playwright/test` (Apache-2.0), `serve` (MIT).
@@ -45,16 +46,32 @@ Dev-only (not shipped): `@testing-library/react-native` (MIT), `fake-indexeddb` 
 
 ### Models (fetched at build time, never committed)
 
-| Model                                                                                                                                                         | Source                                                                                      | Licence                                                                                                                                         | Checked    |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| U-2-Netp ONNX, 4.6 MB (pinned: commit `7112208dbac3a3642496c8d54e2f0f9bb3dc1dc8`, SHA-256 `309c8469258dda742793dce0ebea8e6dd393174f89934733ecc8b14c76f4ddd8`) | `huggingface.co/BritishWerewolf/U-2-Netp`                                                   | Apache-2.0 — card: "licensed under the Apache License 2.0 to match the original U-2-Net model"; original repo `xuebinqin/U-2-Net` is Apache-2.0 | 2026-11-18 |
-| BiRefNet_lite fp16 ONNX, 114.5 MB (optional)                                                                                                                  | `huggingface.co/onnx-community/BiRefNet_lite-ONNX`, weights from `ZhengPeng7/BiRefNet_lite` | MIT on both                                                                                                                                     | 2026-11-18 |
+| Model                                                                                                                                                                                                                                                                                                       | Source                                                                                                                                                   | Licence                                                                                                                                         | Checked    |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| U-2-Netp ONNX, 4.6 MB (pinned: commit `7112208dbac3a3642496c8d54e2f0f9bb3dc1dc8`, SHA-256 `309c8469258dda742793dce0ebea8e6dd393174f89934733ecc8b14c76f4ddd8`)                                                                                                                                               | `huggingface.co/BritishWerewolf/U-2-Netp`                                                                                                                | Apache-2.0 — card: "licensed under the Apache License 2.0 to match the original U-2-Net model"; original repo `xuebinqin/U-2-Net` is Apache-2.0 | 2026-11-18 |
+| MediaPipe Pose Landmarker (full, float16) `.task`, 9.4 MB (pinned: `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task`, SHA-256 `5134a3aad27a58b93da0088d431f366da362b44e3ccfbe3462b3827a839011b1`; never the moving `latest` alias) | Google, `storage.googleapis.com/mediapipe-models`; model card `https://storage.googleapis.com/mediapipe-assets/Model%20Card%20BlazePose%20GHUM%203D.pdf` | Apache-2.0 — the BlazePose GHUM 3D model card says "LICENSED UNDER Apache License, Version 2.0"                                                 | 2026-11-18 |
+| BiRefNet_lite fp16 ONNX, 114.5 MB (optional)                                                                                                                                                                                                                                                                | `huggingface.co/onnx-community/BiRefNet_lite-ONNX`, weights from `ZhengPeng7/BiRefNet_lite`                                                              | MIT on both                                                                                                                                     | 2026-11-18 |
 
 **Attribution (Apache-2.0 NOTICE).** U-2-Netp is derived from U^2-Net, Copyright Xuebin Qin et al.,
 https://github.com/xuebinqin/U-2-Net, licensed under the Apache License 2.0
 (https://www.apache.org/licenses/LICENSE-2.0). The ONNX export is by `rembg` /
 `BritishWerewolf`. The files are changed only by format conversion. `scripts/fetch-models.js` ships a
 `NOTICE.txt` next to the model in the web build; the app's About screen must repeat this credit.
+
+**Pose Landmarker (Apache-2.0 NOTICE).** The Pose Landmarker model is based on BlazePose GHUM 3D,
+Copyright Google LLC, licensed under the Apache License, Version 2.0
+(https://www.apache.org/licenses/LICENSE-2.0); `@mediapipe/tasks-vision` is Copyright The MediaPipe
+Authors, Apache-2.0 (https://github.com/google-ai-edge/mediapipe). The files are unchanged.
+`scripts/fetch-models.js` ships a `NOTICE.txt` next to the model (`public/models/`) and next to the
+runtime (`public/mediapipe/`) in the web build; the app's About screen must repeat this credit. The
+runtime script, `vision_wasm_internal.js` and `.wasm` are copied from `node_modules` by the same
+script. The model card is the publisher's statement; training-data provenance is on the pre-sale
+checklist like the cutout models.
+
+**Test fixture** `e2e/fixtures/silhouette-500x1000.png`: our own `body-a` silhouette artwork
+(`src/ui/mannequin/bodyA.ts`) rendered by `e2e/fixtures/make-silhouette-photo.mjs`. It is not a
+photograph; no third-party photo of a person is committed (none could be fetched and verified as
+CC0 / public domain from this build environment).
 
 **onnxruntime-web 1.31.1** (MIT, Microsoft Corporation; runtime dependency, exact version). Its
 `ort.wasm.min.js`, `ort-wasm-simd-threaded.mjs` and `.wasm` are copied into the web build by

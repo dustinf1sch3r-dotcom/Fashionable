@@ -45,6 +45,11 @@ interface MannequinProps {
    * follows the pointer live; this is called once, on release, with the new adjustment.
    */
   onFitChange?: (itemId: ID, fit: FitAdjust) => void;
+  /**
+   * The person's own photo (image URI, already cropped to the 1:2 canvas). When set it is drawn
+   * instead of the silhouette, and `body` should carry the landmarks that belong to the photo.
+   */
+  backdrop?: string;
   testID?: string;
 }
 
@@ -170,6 +175,7 @@ export function Mannequin({
   interactive,
   debug = false,
   onFitChange,
+  backdrop,
   testID = 'mannequin',
 }: MannequinProps) {
   const [width, setWidth] = useState(0);
@@ -200,7 +206,17 @@ export function Mannequin({
       {...session.responder.panHandlers}
     >
       <View style={styles.fill} pointerEvents="none">
-        <Silhouette body={body} testID={`${testID}-silhouette`} />
+        {backdrop ? (
+          <Image
+            source={{ uri: backdrop }}
+            resizeMode="cover"
+            accessible={false}
+            style={styles.fill}
+            testID={`${testID}-backdrop`}
+          />
+        ) : (
+          <Silhouette body={body} testID={`${testID}-silhouette`} />
+        )}
       </View>
       {placements.map((p) => {
         const item = byId.get(p.itemId);
