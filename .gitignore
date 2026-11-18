@@ -42,3 +42,8 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 dist-*
+
+# Build-time model assets (scripts/fetch-models.js)
+.cache/
+/public/models/
+/public/ort/

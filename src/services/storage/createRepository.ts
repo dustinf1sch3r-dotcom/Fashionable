@@ -82,6 +82,8 @@ export function createRepository<T extends Entity>(
         else all.push(entity);
         await save(all);
       }),
+    listAll: () => enqueue(load),
+    replaceAll: (records: T[]) => enqueue(() => save(records)),
     remove: (id: ID) =>
       enqueue(async () => {
         const all = await load();

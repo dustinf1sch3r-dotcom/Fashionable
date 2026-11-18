@@ -10,6 +10,10 @@ export interface Repository<T extends Entity> {
   get(id: ID): Promise<T | undefined>;
   /** Insert or replace. The caller sets `updatedAt`. */
   put(entity: T): Promise<void>;
+  /** Every record including soft-deleted ones (backup and sync need the tombstones). */
+  listAll(): Promise<T[]>;
+  /** Replace the whole collection with `records` (as given, tombstones included). */
+  replaceAll(records: T[]): Promise<void>;
   /** Soft delete: sets `deletedAt` and `updatedAt`. No-op for unknown ids. */
   remove(id: ID): Promise<void>;
 }
@@ -18,6 +22,8 @@ export interface ImageStore {
   save(source: { uri: string } | Blob, opts?: { id?: ID }): Promise<ID>;
   /** Displayable URI (object URL on web, file URI on native). Rejects for unknown ids. */
   uri(id: ID): Promise<string>;
+  /** The stored bytes. Rejects for unknown ids. */
+  read(id: ID): Promise<Blob>;
   /** Deleting an unknown id is not an error. */
   remove(id: ID): Promise<void>;
 }
@@ -44,4 +50,30 @@ export interface PixelReader {
    * cannot be decoded.
    */
   read(imageUri: string, maxSize: number): Promise<PixelData | undefined>;
+}
+
+export interface CutoutResult {
+  /** Displayable URI of the PNG cutout (an object URL on web, a file URI on native). */
+  uri: string;
+  /** True when the PNG has a transparent background. */
+  hasAlpha: boolean;
+  /** Pixel size of the cutout after trimming to the garment. */
+  width: number;
+  height: number;
+}
+
+/** Removes the background of a garment photo (docs/TRY_ON.md §7). */
+export interface BackgroundRemover {
+  /** False when this platform has no remover; callers keep the original photo. */
+  readonly available: boolean;
+  /**
+   * Downloads and warms the model so the first `remove` is quick. `onProgress` gets 0..1.
+   * Safe to call repeatedly; rejects when the model cannot be loaded.
+   */
+  prepare(onProgress?: (fraction: number) => void): Promise<void>;
+  /**
+   * Cuts out the garment and trims to it. Calls `prepare` if needed. Rejects when removal fails or
+   * finds no garment; callers then fall back to the original with `hasAlpha: false`.
+   */
+  remove(imageUri: string, onProgress?: (fraction: number) => void): Promise<CutoutResult>;
 }

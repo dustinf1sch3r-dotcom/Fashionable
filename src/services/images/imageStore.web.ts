@@ -73,6 +73,13 @@ export function createImageStore(deps: ImageStoreDeps = {}): ImageStore {
       urls.set(id, url);
       return url;
     },
+    async read(id) {
+      const blob = await request<Blob | undefined>(
+        (await db()).transaction(STORE, 'readonly').objectStore(STORE).get(id),
+      );
+      if (!blob) throw new Error(`Unknown image id: ${id}`);
+      return blob;
+    },
     async remove(id) {
       const tx = (await db()).transaction(STORE, 'readwrite');
       tx.objectStore(STORE).delete(id);

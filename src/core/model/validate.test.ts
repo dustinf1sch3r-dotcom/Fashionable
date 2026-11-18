@@ -442,6 +442,9 @@ describe('validateProfile', () => {
     expect(isProfile(full)).toBe(true);
     expect(isProfile([])).toBe(false);
   });
+  it('accepts the optional lastBackupAt timestamp', () => {
+    expect(validateProfile({ ...p(), lastBackupAt: '2026-03-01T09:00:00.000Z' }).ok).toBe(true);
+  });
   it('rejects malformed fields', () => {
     expectBad(validateProfile(without(p(), 'bodyTemplateId')), 'bodyTemplateId', 'missing');
     expectBad(
@@ -452,6 +455,11 @@ describe('validateProfile', () => {
     expectBad(validateProfile(mutate(p(), { units: 'metres' })), 'units', 'invalid_value');
     expectBad(validateProfile(without(p(), 'units')), 'units', 'missing');
     expectBad(validateProfile(mutate(p(), { displayName: 3 })), 'displayName', 'wrong_type');
+    expectBad(
+      validateProfile(mutate(p(), { lastBackupAt: 'yesterday' })),
+      'lastBackupAt',
+      'invalid_format',
+    );
     expectBad(
       validateProfile(mutate(p(), { location: { lat: 91, lon: 0, label: 'x' } })),
       'location.lat',

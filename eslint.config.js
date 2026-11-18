@@ -6,7 +6,15 @@ const forbiddenInCore = ['react', 'react-native', 'react-native-*', 'expo', 'exp
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: ['dist/*', '.expo/*', 'node_modules/*', 'test-results/*', 'playwright-report/*'],
+    ignores: [
+      'dist/*',
+      'dist-*/*',
+      'public/*',
+      '.expo/*',
+      'node_modules/*',
+      'test-results/*',
+      'playwright-report/*',
+    ],
   },
   {
     files: ['src/core/**/*.{ts,tsx}'],

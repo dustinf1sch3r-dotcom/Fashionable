@@ -178,3 +178,22 @@ describe('createRepository', () => {
     expect(JSON.parse(kv.data.get(KEY) ?? '').schemaVersion).toBe(1);
   });
 });
+
+describe('createRepository archive access', () => {
+  it('listAll includes soft-deleted records and replaceAll swaps the whole collection', async () => {
+    const { repo } = setup();
+    await repo.put(thing('a'));
+    await repo.put(thing('b'));
+    await repo.remove('a');
+    expect((await repo.list()).map((t) => t.id)).toEqual(['b']);
+    const all = await repo.listAll();
+    expect(all.map((t) => t.id)).toEqual(['a', 'b']);
+    expect(all[0].deletedAt).toBeDefined();
+
+    await repo.replaceAll([all[0], thing('c')]);
+    expect((await repo.listAll()).map((t) => t.id)).toEqual(['a', 'c']);
+    expect((await repo.list()).map((t) => t.id)).toEqual(['c']);
+    await repo.replaceAll([]);
+    expect(await repo.listAll()).toEqual([]);
+  });
+});

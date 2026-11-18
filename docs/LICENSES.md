@@ -42,12 +42,22 @@ Dev-only (not shipped): `@testing-library/react-native` (MIT), `fake-indexeddb` 
 
 ## Things the automatic check cannot see
 
-### Models (downloaded at run time, never committed)
+### Models (fetched at build time, never committed)
 
-| Model                                        | Source                                                                                      | Licence                                                                                                                                         | Checked    |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| U-2-Netp ONNX, 4.6 MB                        | `huggingface.co/BritishWerewolf/U-2-Netp`                                                   | Apache-2.0 — card: "licensed under the Apache License 2.0 to match the original U-2-Net model"; original repo `xuebinqin/U-2-Net` is Apache-2.0 | 2026-11-18 |
-| BiRefNet_lite fp16 ONNX, 114.5 MB (optional) | `huggingface.co/onnx-community/BiRefNet_lite-ONNX`, weights from `ZhengPeng7/BiRefNet_lite` | MIT on both                                                                                                                                     | 2026-11-18 |
+| Model                                                                                                                                                         | Source                                                                                      | Licence                                                                                                                                         | Checked    |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| U-2-Netp ONNX, 4.6 MB (pinned: commit `7112208dbac3a3642496c8d54e2f0f9bb3dc1dc8`, SHA-256 `309c8469258dda742793dce0ebea8e6dd393174f89934733ecc8b14c76f4ddd8`) | `huggingface.co/BritishWerewolf/U-2-Netp`                                                   | Apache-2.0 — card: "licensed under the Apache License 2.0 to match the original U-2-Net model"; original repo `xuebinqin/U-2-Net` is Apache-2.0 | 2026-11-18 |
+| BiRefNet_lite fp16 ONNX, 114.5 MB (optional)                                                                                                                  | `huggingface.co/onnx-community/BiRefNet_lite-ONNX`, weights from `ZhengPeng7/BiRefNet_lite` | MIT on both                                                                                                                                     | 2026-11-18 |
+
+**Attribution (Apache-2.0 NOTICE).** U-2-Netp is derived from U^2-Net, Copyright Xuebin Qin et al.,
+https://github.com/xuebinqin/U-2-Net, licensed under the Apache License 2.0
+(https://www.apache.org/licenses/LICENSE-2.0). The ONNX export is by `rembg` /
+`BritishWerewolf`. The files are changed only by format conversion. `scripts/fetch-models.js` ships a
+`NOTICE.txt` next to the model in the web build; the app's About screen must repeat this credit.
+
+**onnxruntime-web 1.31.1** (MIT, Microsoft Corporation; runtime dependency, exact version). Its
+`ort.wasm.min.js`, `ort-wasm-simd-threaded.mjs` and `.wasm` are copied into the web build by
+`scripts/fetch-models.js`.
 
 A model card's licence is the publisher's own statement. It does not tell us what the model was
 trained on. That question is on the pre-sale checklist.

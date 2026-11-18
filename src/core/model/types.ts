@@ -242,6 +242,8 @@ export interface Profile extends Entity {
   units: 'metric' | 'imperial';
   /** Phase 3: the user's own standing photo with detected (and user-corrected) landmarks. */
   bodyPhoto?: { imageId: ID; landmarks: BodyLandmarks };
+  /** When the closet was last exported as a backup (optional; no migration needed). */
+  lastBackupAt?: ISODateTime;
 }
 
 // ── Engine output ───────────────────────────────────────────────────────────────────────────

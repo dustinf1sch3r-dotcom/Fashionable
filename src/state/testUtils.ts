@@ -20,6 +20,8 @@ export function spyRepo<T extends Entity>(repo: Repository<T>) {
   const wrapped: Repository<T> = {
     list: () => repo.list(),
     get: (id) => repo.get(id),
+    listAll: () => repo.listAll(),
+    replaceAll: (records) => repo.replaceAll(records),
     put: async (e) => {
       calls.put++;
       if (state.fail) throw new Error('disk full');

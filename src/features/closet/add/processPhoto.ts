@@ -1,7 +1,7 @@
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
 import type { ColorSwatch, Item } from '@/core/model/types';
-import type { ImageStore, PixelReader } from '@/services';
+import type { BackgroundRemover, ImageStore, PixelReader } from '@/services';
 import { summarizeColors } from './colors';
 
 /** Longest side of the stored original (docs/TRY_ON.md §7). */
@@ -34,6 +34,14 @@ export interface ProcessedPhoto {
   /** Empty when this platform cannot read pixels; the user then picks the colour. */
   colors: ColorSwatch[];
   aspectRatio: number;
+  /** Present when background removal worked: a transparent PNG trimmed to the garment. */
+  cutout?: CutoutAssets;
+}
+
+/** A transparent PNG cutout and its thumbnail (also PNG, so the alpha survives). */
+export interface CutoutAssets {
+  image: Rendered;
+  thumb: Rendered;
 }
 
 async function downscale(
@@ -41,6 +49,7 @@ async function downscale(
   size: { width: number; height: number },
   maxPx: number,
   compress: number,
+  format: SaveFormat = SaveFormat.JPEG,
 ): Promise<Rendered> {
   let { width, height } = size;
   if (width <= 0 || height <= 0) {
@@ -52,7 +61,7 @@ async function downscale(
     context.resize(width >= height ? { width: maxPx } : { height: maxPx });
   }
   const ref = await context.renderAsync();
-  return ref.saveAsync({ format: SaveFormat.JPEG, compress });
+  return ref.saveAsync({ format, compress });
 }
 
 /**
@@ -76,20 +85,68 @@ export async function processPhoto(
 }
 
 /**
- * Stores the processed photo. Background removal is a later ticket, so the cutout is the original
- * (saved under its own id, so replacing it later never touches the original).
+ * Removes the background of the image at `uri` and makes the cutout thumbnail. Rejects when the
+ * remover fails, finds no garment or is not available; callers fall back to the plain photo.
+ */
+export async function cutOutImage(
+  remover: BackgroundRemover,
+  uri: string,
+  onProgress?: (fraction: number) => void,
+): Promise<CutoutAssets> {
+  if (!remover.available) throw new Error('Background removal is not available');
+  const result = await remover.remove(uri, onProgress);
+  if (!result.hasAlpha) throw new Error('The remover returned no transparency');
+  const image: Rendered = { uri: result.uri, width: result.width, height: result.height };
+  const thumb = await downscale(image.uri, image, THUMB_MAX_PX, 1, SaveFormat.PNG);
+  return { image, thumb };
+}
+
+/**
+ * Adds a cutout to a processed photo and re-detects the colours from it, so a white backdrop does
+ * not count as the garment's colour. Any failure resolves to the photo unchanged (silent fallback
+ * to the original with `hasAlpha: false`).
+ */
+export async function cutOutPhoto(
+  photo: ProcessedPhoto,
+  remover: BackgroundRemover,
+  pixels: PixelReader,
+  onProgress?: (fraction: number) => void,
+): Promise<ProcessedPhoto> {
+  try {
+    const cutout = await cutOutImage(remover, photo.original.uri, onProgress);
+    let colors = photo.colors;
+    try {
+      const fromCutout = summarizeColors(await pixels.read(cutout.thumb.uri, PALETTE_PX));
+      if (fromCutout.length > 0) colors = fromCutout;
+    } catch {
+      // Keep the colours detected from the whole photo.
+    }
+    return { ...photo, colors, cutout };
+  } catch {
+    return photo;
+  }
+}
+
+/**
+ * Stores the processed photo. With a cutout (and `useOriginal` false) the cutout PNG and its
+ * thumbnail are saved; otherwise the cutout is the original photo (saved under its own id, so
+ * replacing it later never touches the original) with `hasAlpha: false`.
  */
 export async function saveProcessedPhoto(
   store: ImageStore,
   photo: ProcessedPhoto,
+  useOriginal = false,
 ): Promise<{ images: Item['images']; cutout: Item['cutout'] }> {
+  const cut = useOriginal ? undefined : photo.cutout;
   const [originalId, cutoutId, thumbId] = await Promise.all([
     store.save({ uri: photo.original.uri }),
-    store.save({ uri: photo.original.uri }),
-    store.save({ uri: photo.thumb.uri }),
+    store.save({ uri: (cut?.image ?? photo.original).uri }),
+    store.save({ uri: (cut?.thumb ?? photo.thumb).uri }),
   ]);
   return {
     images: { originalId, cutoutId, thumbId },
-    cutout: { aspectRatio: photo.aspectRatio, hasAlpha: false },
+    cutout: cut
+      ? { aspectRatio: cut.image.width / cut.image.height, hasAlpha: true }
+      : { aspectRatio: photo.aspectRatio, hasAlpha: false },
   };
 }

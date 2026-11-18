@@ -71,7 +71,7 @@ All in `src/core`. Verify with `npm run check`.
 - ☑ **M2-5 Closet grid and item detail.** Category tabs, colour filter, search, sort; item detail
   with edit, favourite, laundry/archive, delete with undo. Empty state that invites the first
   photo. Depends on M2-2, M2-3.
-- ☐ **M2-6 Backup.** Export closet (JSON + images) to a zip and import it back; Profile tab entry.
+- ☑ **M2-6 Backup.** Export closet (JSON + images) to one backup file and import it back; Profile tab entry.
   Depends on M2-2.
 - ☐ **M2-7 Deploy the web build.** Publish `dist/` on every push to `main` to a static host chosen
   by the owner, with web-app manifest and icons so "Add to Home Screen" gives a full-screen app.

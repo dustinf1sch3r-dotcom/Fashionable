@@ -43,4 +43,14 @@ describe('fakes', () => {
     await expect(store.uri(id)).rejects.toThrow();
     await store.remove(id);
   });
+
+  it('memoryImageStore reads back saved blobs and rejects unknown ids or uri sources', async () => {
+    const store = createMemoryImageStore(createSequentialIds());
+    const blob = new Blob(['x']);
+    const id = await store.save(blob);
+    expect(await store.read(id)).toBe(blob);
+    await expect(store.read('nope')).rejects.toThrow('Unknown image id');
+    const fromUri = await store.save({ uri: 'file:///x.jpg' });
+    await expect(store.read(fromUri)).rejects.toThrow('no bytes');
+  });
 });

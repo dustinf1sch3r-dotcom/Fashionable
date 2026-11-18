@@ -21,6 +21,12 @@ export function createMemoryImageStore(ids: IdGenerator = createSequentialIds())
       if (!saved.has(id)) throw new Error(`Unknown image id: ${id}`);
       return `memory://${id}`;
     },
+    read: async (id) => {
+      const source = saved.get(id);
+      if (source === undefined) throw new Error(`Unknown image id: ${id}`);
+      if (source instanceof Blob) return source;
+      throw new Error(`Image ${id} was saved from a uri and has no bytes in the memory store`);
+    },
     remove: async (id) => {
       saved.delete(id);
     },

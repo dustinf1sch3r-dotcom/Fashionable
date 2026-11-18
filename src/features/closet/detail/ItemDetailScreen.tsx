@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Item, ItemStatus } from '@/core/model/types';
+import { getServices } from '@/services';
 import { useCloset } from '@/state';
 import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
@@ -17,6 +18,7 @@ import { itemDisplayName } from '../list/filter';
 import { ItemImage } from '../list/ItemImage';
 import { useClosetHydration } from '../list/useClosetHydration';
 import { EditItemSheet, type ItemEdits } from './EditItemSheet';
+import { recutItem } from './recut';
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
@@ -35,6 +37,18 @@ export function ItemDetailScreen({ id }: { id: string }) {
   const restoreItem = useCloset((s) => s.restoreItem);
   const [deleted, setDeleted] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [recut, setRecut] = useState<'idle' | 'working' | 'failed' | 'done'>('idle');
+
+  const runRecut = async (current: Item) => {
+    setRecut('working');
+    try {
+      const result = await recutItem(getServices(), current);
+      updateItem(current.id, result);
+      setRecut('done');
+    } catch {
+      setRecut('failed');
+    }
+  };
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -47,6 +61,8 @@ export function ItemDetailScreen({ id }: { id: string }) {
           onFavorite={() => toggleFavorite(id)}
           onStatus={(s) => setStatus(id, s)}
           onEdit={() => setEditing(true)}
+          recut={recut}
+          onRecut={() => void runRecut(item)}
           onDelete={() => {
             removeItem(id);
             setDeleted(true);
@@ -126,10 +142,12 @@ interface ItemBodyProps {
   onFavorite: () => void;
   onStatus: (status: ItemStatus) => void;
   onEdit: () => void;
+  recut: 'idle' | 'working' | 'failed' | 'done';
+  onRecut: () => void;
   onDelete: () => void;
 }
 
-function ItemBody({ item, onFavorite, onStatus, onEdit, onDelete }: ItemBodyProps) {
+function ItemBody({ item, onFavorite, onStatus, onEdit, recut, onRecut, onDelete }: ItemBodyProps) {
   const rows: [string, string][] = [
     ['Category', CATEGORY_LABELS[item.category]],
     ['Pattern', PATTERN_LABELS[item.pattern]],
@@ -187,6 +205,34 @@ function ItemBody({ item, onFavorite, onStatus, onEdit, onDelete }: ItemBodyProp
         ))}
       </Card>
 
+      {getServices().cutout.available ? (
+        <View style={styles.recut}>
+          <Button
+            label="Re-cut background"
+            icon="cut-outline"
+            variant="secondary"
+            loading={recut === 'working'}
+            onPress={onRecut}
+            testID="item-recut"
+          />
+          {recut === 'working' ? (
+            <Text style={styles.recutNote} testID="item-recut-working">
+              Removing background…
+            </Text>
+          ) : null}
+          {recut === 'failed' ? (
+            <Text accessibilityRole="alert" style={styles.recutError} testID="item-recut-error">
+              {'⚠ We couldn\u2019t cut this one out. The current picture is unchanged.'}
+            </Text>
+          ) : null}
+          {recut === 'done' ? (
+            <Text style={styles.recutNote} testID="item-recut-done">
+              Background removed.
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
+
       <View style={styles.actions}>
         <Button label="Edit" icon="create-outline" onPress={onEdit} testID="item-edit" />
         <Button
@@ -222,6 +268,9 @@ const styles = StyleSheet.create({
   attr: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
   attrLabel: { ...typography.body, color: colors.textMuted },
   attrValue: { ...typography.label, color: colors.text, flexShrink: 1, textAlign: 'right' },
+  recut: { gap: spacing.xs, alignItems: 'center' },
+  recutNote: { ...typography.caption, color: colors.textMuted },
+  recutError: { ...typography.label, color: colors.danger },
   actions: { flexDirection: 'row', gap: spacing.sm, justifyContent: 'center' },
   banner: {
     flexDirection: 'row',

@@ -1,5 +1,5 @@
 import { useReducer, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { CATEGORIES, subcategoriesOf } from '@/core/model/taxonomy';
 import type { Pattern } from '@/core/model/types';
@@ -9,9 +9,10 @@ import { ColorDot } from '@/ui/ColorDot';
 import { Rating5 } from '@/ui/Rating5';
 import { SectionHeader } from '@/ui/SectionHeader';
 import { TextField } from '@/ui/TextField';
-import { colors, radius, spacing, typography } from '@/ui/theme';
+import { colors, spacing, typography } from '@/ui/theme';
 import { CATEGORY_LABELS, COLOR_LABELS, PATTERN_LABELS, subcategoryLabel } from '../labels';
 import { ColorPicker } from './ColorPicker';
+import { PhotoPreview } from './PhotoPreview';
 import { formReducer, initialFormState, validateForm, type FormState } from './formState';
 import type { ProcessedPhoto } from './processPhoto';
 
@@ -25,13 +26,23 @@ const FLAG_OPTIONS = [
 
 interface TagFormProps {
   photo: ProcessedPhoto;
+  useOriginal: boolean;
+  onToggleOriginal: () => void;
   saving: boolean;
   error: string | null;
   onSave: (state: FormState) => void;
   onChangePhoto: () => void;
 }
 
-export function TagForm({ photo, saving, error, onSave, onChangePhoto }: TagFormProps) {
+export function TagForm({
+  photo,
+  useOriginal,
+  onToggleOriginal,
+  saving,
+  error,
+  onSave,
+  onChangePhoto,
+}: TagFormProps) {
   const [state, dispatch] = useReducer(formReducer, photo.colors, initialFormState);
   const noColour = state.colors.length === 0;
   const [pickingColour, setPickingColour] = useState(noColour);
@@ -47,12 +58,10 @@ export function TagForm({ photo, saving, error, onSave, onChangePhoto }: TagForm
     <View style={styles.root} testID="add-item-form">
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.previewRow}>
-          <Image
-            accessibilityLabel="Your photo"
-            resizeMode="contain"
-            source={{ uri: photo.thumb.uri }}
-            style={styles.preview}
-            testID="add-item-preview"
+          <PhotoPreview
+            photo={photo}
+            useOriginal={useOriginal}
+            onToggleOriginal={onToggleOriginal}
           />
           <View style={styles.previewInfo}>
             <Text style={styles.caption}>{noColour ? 'Colour' : 'Detected colour'}</Text>
@@ -204,12 +213,6 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   content: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.xl },
   previewRow: { flexDirection: 'row', gap: spacing.md, alignItems: 'center' },
-  preview: {
-    width: 120,
-    height: 150,
-    borderRadius: radius.md,
-    backgroundColor: colors.surfaceAlt,
-  },
   previewInfo: { flex: 1, gap: spacing.xs, alignItems: 'flex-start' },
   more: { gap: spacing.xs },
   caption: { ...typography.caption, color: colors.textMuted },

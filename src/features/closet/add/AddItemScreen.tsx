@@ -7,11 +7,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { getServices } from '@/services';
 import { getStores, hydrateAll } from '@/state';
 import { IconButton } from '@/ui/IconButton';
-import { colors, spacing, typography } from '@/ui/theme';
+import { colors, radius, spacing, typography } from '@/ui/theme';
 import { PickStep } from './PickStep';
 import { TagForm } from './TagForm';
 import { toNewItemInit, validateForm, type FormState } from './formState';
 import {
+  cutOutPhoto,
   processPhoto,
   saveProcessedPhoto,
   type PickedPhoto,
@@ -21,6 +22,7 @@ import {
 type Step =
   | { kind: 'pick' }
   | { kind: 'processing' }
+  | { kind: 'cutting'; progress: number }
   | { kind: 'form'; photo: ProcessedPhoto; photoKey: number };
 
 const PHOTO_ERROR = "We couldn't read that photo. Try another one or take a new picture.";
@@ -34,12 +36,13 @@ export function AddItemScreen() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [photoCount, setPhotoCount] = useState(0);
+  const [useOriginal, setUseOriginal] = useState(false);
 
   // Go back to the closet that opened this screen; after a direct page load there is no history.
   const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   const pick = async (source: 'camera' | 'library') => {
-    if (step.kind === 'processing') return;
+    if (step.kind === 'processing' || step.kind === 'cutting') return;
     setPickError(null);
     let picked: PickedPhoto | undefined;
     try {
@@ -64,8 +67,17 @@ export function AddItemScreen() {
     }
     setStep({ kind: 'processing' });
     try {
-      const photo = await processPhoto(picked, getServices().pixels);
+      const services = getServices();
+      let photo = await processPhoto(picked, services.pixels);
+      if (services.cutout.available) {
+        setStep({ kind: 'cutting', progress: 0 });
+        // A failed cutout is not an error: the photo is kept as it is (hasAlpha: false).
+        photo = await cutOutPhoto(photo, services.cutout, services.pixels, (progress) =>
+          setStep({ kind: 'cutting', progress }),
+        );
+      }
       setSaveError(null);
+      setUseOriginal(false);
       setPhotoCount((n) => n + 1);
       setStep({ kind: 'form', photo, photoKey: photoCount + 1 });
     } catch {
@@ -79,7 +91,11 @@ export function AddItemScreen() {
     setSaving(true);
     setSaveError(null);
     try {
-      const { images, cutout } = await saveProcessedPhoto(getServices().images, step.photo);
+      const { images, cutout } = await saveProcessedPhoto(
+        getServices().images,
+        step.photo,
+        useOriginal,
+      );
       const closet = getStores().closet;
       // Loading after the add would replace the in-memory list and drop the new item.
       if (closet.getState().status !== 'ready') await hydrateAll();
@@ -124,10 +140,29 @@ export function AddItemScreen() {
           <Text style={styles.muted}>Preparing your photo…</Text>
         </View>
       ) : null}
+      {step.kind === 'cutting' ? (
+        <View style={styles.center} testID="add-item-cutting">
+          <ActivityIndicator size="large" color={colors.accent} />
+          <Text style={styles.muted}>Removing background…</Text>
+          <View
+            style={styles.track}
+            accessibilityRole="progressbar"
+            accessibilityValue={{ min: 0, max: 100, now: Math.round(step.progress * 100) }}
+            testID="add-item-cutting-progress"
+          >
+            <View style={[styles.fill, { width: `${Math.round(step.progress * 100)}%` }]} />
+          </View>
+          <Text style={styles.hint}>
+            The first photo downloads a small helper (about 20 MB). After that it is quick.
+          </Text>
+        </View>
+      ) : null}
       {step.kind === 'form' ? (
         <TagForm
           key={step.photoKey}
           photo={step.photo}
+          useOriginal={useOriginal}
+          onToggleOriginal={() => setUseOriginal((v) => !v)}
           saving={saving}
           error={saveError}
           onSave={(state) => void save(state)}
@@ -153,4 +188,13 @@ const styles = StyleSheet.create({
   body: { padding: spacing.md },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
   muted: { ...typography.body, color: colors.textMuted },
+  hint: { ...typography.caption, color: colors.textMuted, textAlign: 'center', maxWidth: 280 },
+  track: {
+    width: 240,
+    height: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceAlt,
+    overflow: 'hidden',
+  },
+  fill: { height: '100%', backgroundColor: colors.accent },
 });

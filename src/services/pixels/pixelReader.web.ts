@@ -1,15 +1,7 @@
 import type { PixelData, PixelReader } from '../types';
+import { loadImage } from './canvas.web';
 
 export type { PixelData, PixelReader } from '../types';
-
-function loadImage(uri: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('Could not decode the image'));
-    img.src = uri;
-  });
-}
 
 /** Draws the image onto a canvas whose longest side is `maxSize` and reads its RGBA pixels. */
 export function createPixelReader(): PixelReader {

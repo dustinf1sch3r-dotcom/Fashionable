@@ -1,5 +1,3 @@
-import { Placeholder } from '@/ui/Placeholder';
+import { ProfileScreen } from '@/features/profile';
 
-export default function ProfileScreen() {
-  return <Placeholder title="Profile" testID="screen-profile" />;
-}
+export default ProfileScreen;

@@ -192,8 +192,10 @@ tests can pass in-memory fakes (`src/services/testing/`).
   writes are debounced (250 ms) and write the whole collection.
 - **Images:** web → IndexedDB blobs; native → files under the app's document directory. Three
   images per item: original (max 1600 px), cutout (max 1024 px), thumbnail (256 px).
-- **Export / import:** a zip of the JSON plus images, as the phase-1 backup and
-  device-to-device path. Needed because browser storage can be evicted.
+- **Export / import:** one JSON file holding every record (soft-deleted ones included) and every
+  image as base64, from the Profile tab. Import can merge (newer `updatedAt` wins) or replace, and
+  rejects the whole file on any invalid record. Roughly 1 MB per item, so a very large closet will
+  need a streaming or zip format before import runs out of memory on a phone.
 
 ### Storage, phase 2 (accounts and sync)
 
@@ -226,7 +228,18 @@ closed-source commercial app. Sources and quotes are in docs/LICENSES.md.
 | Android store build             | Google ML Kit Subject Segmentation (`play-services-mlkit-subject-segmentation`, min API 24)                                      | **Still a beta API** with no stability guarantee. Keep the U-2-Netp path available on Android as the fallback. |
 | Any                             | No removal: keep the photo as a rounded rectangle, `hasAlpha: false`                                                             | Always available.                                                                                              |
 
-Model files are downloaded on first use and cached; they are never committed to this repo.
+Hosting (web): the model is never committed and phones never contact Hugging Face.
+`scripts/fetch-models.js` (run by `npm run build:web` / `npm run web`) downloads the model at a
+pinned commit, verifies its SHA-256, caches it in `.cache/models/` and copies it to
+`public/models/`; it also copies the three onnxruntime-web browser files to `public/ort/`. Expo
+puts `public/` into the export, so everything is served from our own site under the base path
+(`EXPO_BASE_URL`, e.g. `/Fashionable`). Both folders are gitignored. At run time `cutout.web.ts`
+loads `ort.wasm.min.js` with a script tag (nothing from onnxruntime is in the app bundle),
+downloads the WASM and model on the first cut-out only, and keeps them in the Cache API.
+GitHub Pages sends no COOP/COEP headers, so there is no SharedArrayBuffer: the runtime runs
+single-threaded on the main thread (`numThreads = 1`; inference blocks the UI for about 2 s on
+desktop, probably longer on a phone; a worker is a later improvement). The model runs at 320 x 320
+and the mask is scaled up to the photo. The WASM is 14.8 MB (about 20 MB with the model).
 
 Not allowed:
 

@@ -79,4 +79,13 @@ describe('web image store', () => {
       globalThis.fetch = original;
     }
   });
+
+  it('reads back the stored blob and rejects unknown ids', async () => {
+    const store = createImageStore();
+    await store.save(blob('hello'), { id: 'readable' });
+    // fake-indexeddb structured-clones Blobs into plain objects, so only presence is checked here;
+    // the real bytes round trip is covered by e2e/backup.spec.ts.
+    await expect(store.read('readable')).resolves.toBeDefined();
+    await expect(store.read('missing')).rejects.toThrow('Unknown image id');
+  });
 });

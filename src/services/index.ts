@@ -1,10 +1,12 @@
 import { isFeedback, isItem, isOutfit, isProfile, isWearLog } from '@/core/model/validate';
 import type { Entity, Feedback, Item, Outfit, Profile, WearLog } from '@/core/model/types';
 import { createImageStore } from './images';
+import { createBackgroundRemover } from './cutout';
 import { createPixelReader } from './pixels';
 import { createAsyncStorageKv, createRepository } from './storage';
 import { createSystemClock, createIdGenerator } from './system';
 import {
+  createFakeBackgroundRemover,
   createFakePixelReader,
   createFixedClock,
   createMemoryImageStore,
@@ -12,6 +14,7 @@ import {
   createSequentialIds,
 } from './testing';
 import type {
+  BackgroundRemover,
   Clock,
   IdGenerator,
   ImageStore,
@@ -21,7 +24,9 @@ import type {
 } from './types';
 
 export type {
+  BackgroundRemover,
   Clock,
+  CutoutResult,
   IdGenerator,
   ImageStore,
   KeyValueStore,
@@ -38,6 +43,7 @@ export interface Services {
   profile: Repository<Profile>;
   images: ImageStore;
   pixels: PixelReader;
+  cutout: BackgroundRemover;
   clock: Clock;
   ids: IdGenerator;
 }
@@ -50,6 +56,7 @@ function build(
   kv: KeyValueStore,
   images: ImageStore,
   pixels: PixelReader,
+  cutout: BackgroundRemover,
   clock: Clock,
   ids: IdGenerator,
   onError: ServicesOptions['onStorageError'],
@@ -64,6 +71,7 @@ function build(
     profile: repo<Profile>('profile', isProfile),
     images,
     pixels,
+    cutout,
     clock,
     ids,
   };
@@ -76,6 +84,7 @@ export function createServices(options: ServicesOptions = {}): Services {
     createAsyncStorageKv(),
     createImageStore({ ids }),
     createPixelReader(),
+    createBackgroundRemover(),
     createSystemClock(),
     ids,
     options.onStorageError,
@@ -91,6 +100,7 @@ export function createTestServices(
     createMemoryKv(),
     createMemoryImageStore(ids),
     createFakePixelReader(),
+    createFakeBackgroundRemover(),
     overrides.clock ?? createFixedClock(),
     ids,
     undefined,

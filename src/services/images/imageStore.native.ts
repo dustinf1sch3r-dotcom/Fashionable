@@ -37,6 +37,11 @@ export function createImageStore(deps: ImageStoreDeps = {}): ImageStore {
       if (!file.exists) throw new Error(`Unknown image id: ${id}`);
       return file.uri;
     },
+    async read(id) {
+      const file = fileFor(id);
+      if (!file.exists) throw new Error(`Unknown image id: ${id}`);
+      return file; // expo-file-system's File implements Blob
+    },
     async remove(id) {
       const file = fileFor(id);
       if (file.exists) file.delete();
