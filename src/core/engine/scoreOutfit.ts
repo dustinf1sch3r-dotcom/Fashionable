@@ -18,6 +18,8 @@ import { scoreOccasion } from './score/occasion';
 import { scorePattern } from './score/pattern';
 import { clamp01 } from './score/types';
 import type { ComponentResult } from './score/types';
+import { buildTasteModel, scoreTaste } from './taste';
+import type { TasteModel } from './taste';
 import { scoreWeather, sunBonusPoints } from './score/weather';
 
 export interface ScoreContext {
@@ -30,17 +32,8 @@ export interface ScoreContext {
 export interface ScoreHistory {
   wearLogs: readonly WearLog[];
   feedback?: readonly Feedback[];
-}
-
-/**
- * Taste hook (OUTFIT_ENGINE §7). Always `null` (skipped) until M1-6 provides the affinity model.
- * TODO(M1-6): replace with the real taste score from `engine/taste.ts`.
- */
-function scoreTaste(
-  _items: readonly Item[],
-  _feedback: readonly Feedback[],
-): ComponentResult | null {
-  return null;
+  /** Prebuilt taste model (the generator builds it once per run); takes precedence over `feedback`. */
+  taste?: TasteModel;
 }
 
 /**
@@ -66,7 +59,7 @@ export function scoreOutfit(
     ['occasion', scoreOccasion(list, context.occasion)],
     ['coordination', scoreCoordination(list)],
     ['freshness', scoreFreshness(list, context.date, history.wearLogs)],
-    ['taste', scoreTaste(list, history.feedback ?? [])],
+    ['taste', scoreTaste(list, history.taste ?? buildTasteModel(history.feedback ?? [], list))],
   );
 
   const applied = results.filter((r): r is [ScoreComponent, ComponentResult] => r[1] !== null);

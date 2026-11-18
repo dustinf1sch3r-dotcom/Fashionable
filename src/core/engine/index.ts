@@ -7,3 +7,4 @@ export * from './score/coordination';
 export * from './score/freshness';
 export * from './score/occasion';
 export * from './score/weather';
+export * from './taste';

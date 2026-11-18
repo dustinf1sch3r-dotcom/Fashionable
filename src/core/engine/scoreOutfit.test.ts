@@ -52,11 +52,12 @@ describe('scoreOutfit renormalisation', () => {
     expect(weights.reduce((a, c) => a + c, 0)).toBeCloseTo(1, 10);
   });
 
-  it('feedback does not yet affect the score (taste hook is M1-6)', () => {
-    const fb = [{ itemIds: ['a'], verdict: 'like' as const }] as never;
-    const a = scoreOutfit(GOOD, CASUAL, NO_HISTORY);
+  it('feedback that never mentions the outfit pairs leaves taste neutral (0.5)', () => {
+    const fb = [
+      { itemIds: ['a', 'b'], verdict: 'like' as const, updatedAt: 'x', id: 'f' },
+    ] as never;
     const b = scoreOutfit(GOOD, CASUAL, { wearLogs: [], feedback: fb });
-    expect(b.total).toBe(a.total);
+    expect(b.components.taste?.value).toBe(0.5);
   });
 
   it('empty outfit scores 0 with no components', () => {

@@ -250,3 +250,16 @@ export const WEATHER_MISSING_LAYER_FACTOR = 0.5;
 export const WEATHER_HARD_RULE_FACTOR = 0.3;
 /** Weather value at or above which the outfit is reported as `WEATHER_SUITED`. */
 export const WEATHER_SUITED_MIN = 0.75;
+
+// ── §7 Taste ────────────────────────────────────────────────────────────────────────────────
+
+/** Weight of the mean item-pair affinity in `sigmoid(a·item + b·attr)`. */
+export const TASTE_ITEM_PAIR_MIX = 0.6;
+/** Weight of the mean attribute-pair affinity. */
+export const TASTE_ATTR_PAIR_MIX = 0.4;
+/** Slope `k` of `1 / (1 + e^(−k·x))`. */
+export const TASTE_SIGMOID_SLOPE = 1;
+/** Taste value at or above which the outfit is reported as `TASTE_MATCH`. */
+export const TASTE_MATCH_MIN = 0.6;
+/** Width of a hue bucket (degrees) in the stable colour-family key. */
+export const TASTE_HUE_BUCKET_DEGREES = 30;
