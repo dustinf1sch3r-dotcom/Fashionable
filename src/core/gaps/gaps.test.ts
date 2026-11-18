@@ -244,10 +244,15 @@ describe('performance', () => {
       const src = base[i % base.length] as Item;
       big.push({ ...src, id: `${src.id}-${i}` });
     }
-    findGaps(big); // warm-up
-    const t0 = performance.now();
-    findGaps(big);
-    const ms = performance.now() - t0;
-    expect(ms).toBeLessThan(300);
+    findGaps(big); // warm up the JIT
+    const times: number[] = [];
+    for (let i = 0; i < 5; i++) {
+      const t0 = performance.now();
+      findGaps(big);
+      times.push(performance.now() - t0);
+    }
+    times.sort((a, b) => a - b);
+    process.stdout.write(`findGaps 150 items ms: ${times.map((t) => t.toFixed(1)).join(' ')}\n`);
+    expect(times[Math.floor(times.length / 2)]).toBeLessThan(300);
   });
 });

@@ -4,7 +4,7 @@ import { isNeutral, meanHue, hueFamilies } from './classify';
 import { hexToRgb, hueDistance, rgbToHsl } from './hsl';
 import type { Hsl } from './hsl';
 
-interface Entry extends Hsl {
+export interface ColourEntry extends Hsl {
   hex: string;
   name: ColorName;
   neutral: boolean;
@@ -19,7 +19,8 @@ const MAIN_PIECE_SLOTS: readonly Slot[] = ['base', 'mid', 'bottom', 'onepiece', 
 const ECHO_SLOTS: readonly Slot[] = ['shoes', 'belt', 'bag'];
 const SECONDARY_MIN_SHARE = 0.25;
 
-function entriesOf(item: Item): Entry[] {
+/** Visible colours of one item (primary, plus a secondary of at least 25% share); none for ignored slots. */
+export function entriesOf(item: Item): ColourEntry[] {
   const slot = slotOf(item);
   if (IGNORED_SLOTS.includes(slot) || item.colors.length === 0) return [];
   // Largest share first regardless of the stored order (first wins ties).
@@ -61,7 +62,14 @@ const clamp01 = (v: number): number => Math.min(1, Math.max(0, v));
  *   bag echoes if it shares a hue family with an accent colour on a main piece.
  */
 export function colourHarmony(items: Item[]): { value: number; reason: Reason } {
-  const entries = items.flatMap(entriesOf);
+  return harmonyOfEntries(items.flatMap(entriesOf));
+}
+
+/** The scoring half of `colourHarmony`, for callers that cache each item's `entriesOf`. */
+export function harmonyOfEntries(entries: readonly ColourEntry[]): {
+  value: number;
+  reason: Reason;
+} {
   const accents = entries.filter((e) => !e.neutral);
   const neutrals = entries.filter((e) => e.neutral);
   const families = hueFamilies(accents);

@@ -1,17 +1,11 @@
-import { scoreOutfit } from '../engine/scoreOutfit';
 import { ADD_ON_MIN_GAIN, GOOD_OUTFIT_THRESHOLD, MAX_CORE_COMBOS } from '../engine/weights';
 import { subcategoryDefaults } from '../model/taxonomy';
 import { slotOf } from '../model/slots';
 import type { ID, Item } from '../model/types';
 import { ARCHETYPES } from './archetypes';
-import {
-  SCORE_CONTEXT,
-  SCORE_HISTORY,
-  corePools,
-  enumerateCombos,
-  isCoreSlot,
-  scoreCore,
-} from './combos';
+import { fastTotal, prepItem } from './fastScore';
+import type { Prep } from './fastScore';
+import { corePools, enumerateCombos, isCoreSlot, scoreCore } from './combos';
 import type { CorePools, CoreSlot } from './combos';
 import { isCovered } from './coverage';
 import {
@@ -49,6 +43,14 @@ export interface OrphanReport {
   wouldHelp: string[];
 }
 
+const archetypePreps = new Map<Item, Prep>();
+/** Archetype items are module constants, so their prepared form is cached for the process. */
+function archetypePrep(item: Item): Prep {
+  let p = archetypePreps.get(item);
+  if (!p) archetypePreps.set(item, (p = prepItem(item)));
+  return p;
+}
+
 /**
  * Archetypes the closet lacks, ranked by how many good core combos each would add (OUTFIT_ENGINE
  * §8). Adding one item never removes combos, so `with − without` is exactly the number of good
@@ -65,13 +67,13 @@ export function findGaps(items: readonly Item[], opts: GapOptions = {}): GapSugg
     if (!isCoreSlot(slot) || isCovered(archetype, items)) continue;
     const { combos, total } = enumerateCombos(
       pools,
-      { [slot]: [archetype.item] },
+      { [slot]: [archetypePrep(archetype.item)] },
       MAX_ARCHETYPE_COMBOS,
       seed,
     );
     let good = 0;
     let goodSum = 0;
-    let best: Item[] | undefined;
+    let best: Prep[] | undefined;
     let bestScore = -1;
     for (const combo of combos) {
       const score = scoreCore(combo);
@@ -89,7 +91,7 @@ export function findGaps(items: readonly Item[], opts: GapOptions = {}): GapSugg
       kind: 'core',
       unlockedCount: Math.round((good * total) / combos.length),
       improvedCount: 0,
-      exampleOutfitItemIds: best.map((i) => i.id),
+      exampleOutfitItemIds: best.map((p) => p.item.id),
       meanGoodScore: goodSum / good,
     });
   }
@@ -126,14 +128,14 @@ function addonGaps(items: readonly Item[], pools: CorePools, seed: number): GapS
   for (const archetype of ARCHETYPES) {
     const slot = slotOf(archetype.item);
     if (isCoreSlot(slot) || isCovered(archetype, items)) continue;
+    const addon = archetypePrep(archetype.item);
     let improved = 0;
     let gainSum = 0;
-    let best: Item[] | undefined;
+    let best: Prep[] | undefined;
     let bestGain = 0;
     for (const { combo, score } of tried) {
       if (slot === 'belt' && !beltCompatible(combo)) continue;
-      const gain =
-        scoreOutfit([...combo, archetype.item], SCORE_CONTEXT, SCORE_HISTORY).total - score;
+      const gain = fastTotal([...combo, addon]) - score;
       if (gain < ADD_ON_MIN_GAIN) continue;
       improved++;
       gainSum += gain;
@@ -148,7 +150,7 @@ function addonGaps(items: readonly Item[], pools: CorePools, seed: number): GapS
       kind: 'addon',
       unlockedCount: 0,
       improvedCount: Math.round((improved * goodCombos.length) / tried.length),
-      exampleOutfitItemIds: [...best.map((i) => i.id), archetype.item.id],
+      exampleOutfitItemIds: [...best.map((p) => p.item.id), archetype.item.id],
       meanGain: gainSum / improved,
     });
   }
@@ -161,9 +163,11 @@ function addonGaps(items: readonly Item[], pools: CorePools, seed: number): GapS
   return out.slice(0, MAX_ADDON_SUGGESTIONS).map(({ meanGain: _g, ...suggestion }) => suggestion);
 }
 
-function beltCompatible(combo: readonly Item[]): boolean {
-  const bottom = combo.find((i) => slotOf(i) === 'bottom');
-  return !!bottom && subcategoryDefaults('bottom', bottom.subcategory)?.beltCompatible === true;
+function beltCompatible(combo: readonly Prep[]): boolean {
+  const bottom = combo.find((p) => p.slot === 'bottom');
+  return (
+    !!bottom && subcategoryDefaults('bottom', bottom.item.subcategory)?.beltCompatible === true
+  );
 }
 
 /**
@@ -178,18 +182,19 @@ export function findOrphans(items: readonly Item[], opts: GapOptions = {}): Orph
   const good = new Map<ID, number>();
   for (const combo of combos) {
     if (scoreCore(combo) < GOOD_OUTFIT_THRESHOLD) continue;
-    for (const i of combo) good.set(i.id, (good.get(i.id) ?? 0) + 1);
+    for (const i of combo) good.set(i.item.id, (good.get(i.item.id) ?? 0) + 1);
   }
 
   const orphans: OrphanReport[] = [];
   const candidates = [...pools.base, ...pools.bottom, ...pools.onepiece, ...pools.shoes];
-  for (const item of candidates) {
+  for (const prep of candidates) {
+    const item = prep.item;
     const count = Math.round((good.get(item.id) ?? 0) * scale);
     if (count >= ORPHAN_MIN_GOOD_OUTFITS) continue;
     orphans.push({
       itemId: item.id,
       goodOutfitCount: count,
-      wouldHelp: wouldHelp(item, items, pools, seed),
+      wouldHelp: wouldHelp(prep, items, pools, seed),
     });
   }
   return orphans.sort(
@@ -199,15 +204,15 @@ export function findOrphans(items: readonly Item[], opts: GapOptions = {}): Orph
   );
 }
 
-function wouldHelp(item: Item, items: readonly Item[], pools: CorePools, seed: number): string[] {
-  const itemSlot = slotOf(item) as CoreSlot;
+function wouldHelp(prep: Prep, items: readonly Item[], pools: CorePools, seed: number): string[] {
+  const itemSlot = prep.slot as CoreSlot;
   const lifts: { id: string; count: number }[] = [];
   for (const archetype of ARCHETYPES) {
     const slot = slotOf(archetype.item);
     if (!isCoreSlot(slot) || slot === itemSlot || isCovered(archetype, items)) continue;
     const { combos, total } = enumerateCombos(
       pools,
-      { [itemSlot]: [item], [slot]: [archetype.item] },
+      { [itemSlot]: [prep], [slot]: [archetypePrep(archetype.item)] },
       MAX_ARCHETYPE_COMBOS,
       seed,
     );

@@ -310,6 +310,11 @@ findOrphans(items, opts): OrphanReport[] // { itemId, goodOutfitCount, wouldHelp
 - **Duplicates:** active items with the same subcategory, primary colour name and pattern whose
   primary colours differ by ΔE < 10.
 
+**Performance note.** Gap analysis scores core combos with `gaps/fastScore.ts`, a fast mirror of
+`scoreOutfit` for occasion `any`, no weather and no history (colour, formality, pattern,
+coordination only), with per-item data prepared once. A property test asserts it equals
+`scoreOutfit` to 1e-9; any change to those four components must be made in both places.
+
 ## 9. Testing requirements
 
 - A fixture closet of ~30 realistic items in `src/core/testing/fixtures.ts`, shared by all tests.

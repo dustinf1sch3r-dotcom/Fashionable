@@ -1,0 +1,885 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`gaps golden output findGaps duplicated-150 1`] = `
+[
+  {
+    "archetypeId": "black-sneakers",
+    "exampleOutfitItemIds": [
+      "blouse-floral-116",
+      "jeans-dark-10",
+      "archetype:black-sneakers",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 448,
+  },
+  {
+    "archetypeId": "light-blue-shirt",
+    "exampleOutfitItemIds": [
+      "archetype:light-blue-shirt",
+      "skirt-midi-pleated-126",
+      "loafers-brown-135",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 445,
+  },
+  {
+    "archetypeId": "black-ankle-boots",
+    "exampleOutfitItemIds": [
+      "blouse-floral-116",
+      "skirt-midi-pleated-126",
+      "archetype:black-ankle-boots",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 432,
+  },
+  {
+    "archetypeId": "black-flats",
+    "exampleOutfitItemIds": [
+      "blouse-floral-116",
+      "skirt-midi-pleated-126",
+      "archetype:black-flats",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 432,
+  },
+  {
+    "archetypeId": "black-jeans",
+    "exampleOutfitItemIds": [
+      "blouse-floral-116",
+      "archetype:black-jeans",
+      "loafers-brown-135",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 391,
+  },
+  {
+    "archetypeId": "black-tote",
+    "exampleOutfitItemIds": [
+      "blouse-floral-116",
+      "jeans-light-11",
+      "running-shoes-grey-138",
+      "archetype:black-tote",
+    ],
+    "improvedCount": 629,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+  {
+    "archetypeId": "brown-crossbody",
+    "exampleOutfitItemIds": [
+      "blouse-floral-116",
+      "jeans-light-11",
+      "running-shoes-grey-138",
+      "archetype:brown-crossbody",
+    ],
+    "improvedCount": 629,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+  {
+    "archetypeId": "black-leather-jacket",
+    "exampleOutfitItemIds": [
+      "blouse-floral-116",
+      "chinos-beige-13",
+      "running-shoes-grey-64",
+      "archetype:black-leather-jacket",
+    ],
+    "improvedCount": 295,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+]
+`;
+
+exports[`gaps golden output findGaps duplicated-150 2`] = `
+[
+  {
+    "archetypeId": "black-sneakers",
+    "exampleOutfitItemIds": [
+      "blouse-floral-116",
+      "jeans-dark-10",
+      "archetype:black-sneakers",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 450,
+  },
+  {
+    "archetypeId": "light-blue-shirt",
+    "exampleOutfitItemIds": [
+      "archetype:light-blue-shirt",
+      "skirt-midi-pleated-126",
+      "loafers-brown-135",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 449,
+  },
+  {
+    "archetypeId": "black-ankle-boots",
+    "exampleOutfitItemIds": [
+      "blouse-floral-116",
+      "skirt-midi-pleated-126",
+      "archetype:black-ankle-boots",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 431,
+  },
+  {
+    "archetypeId": "black-flats",
+    "exampleOutfitItemIds": [
+      "blouse-floral-116",
+      "skirt-midi-pleated-126",
+      "archetype:black-flats",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 431,
+  },
+  {
+    "archetypeId": "black-jeans",
+    "exampleOutfitItemIds": [
+      "blouse-floral-116",
+      "archetype:black-jeans",
+      "loafers-brown-135",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 388,
+  },
+  {
+    "archetypeId": "black-tote",
+    "exampleOutfitItemIds": [
+      "blouse-floral-116",
+      "jeans-light-85",
+      "running-shoes-grey-138",
+      "archetype:black-tote",
+    ],
+    "improvedCount": 734,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+  {
+    "archetypeId": "brown-crossbody",
+    "exampleOutfitItemIds": [
+      "blouse-floral-116",
+      "jeans-light-85",
+      "running-shoes-grey-138",
+      "archetype:brown-crossbody",
+    ],
+    "improvedCount": 734,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+  {
+    "archetypeId": "black-leather-jacket",
+    "exampleOutfitItemIds": [
+      "blouse-floral-116",
+      "chinos-beige-124",
+      "running-shoes-grey-27",
+      "archetype:black-leather-jacket",
+    ],
+    "improvedCount": 322,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+]
+`;
+
+exports[`gaps golden output findGaps fixture 1`] = `
+[
+  {
+    "archetypeId": "light-blue-shirt",
+    "exampleOutfitItemIds": [
+      "archetype:light-blue-shirt",
+      "skirt-midi-pleated",
+      "loafers-brown",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 28,
+  },
+  {
+    "archetypeId": "black-ankle-boots",
+    "exampleOutfitItemIds": [
+      "blouse-floral",
+      "skirt-midi-pleated",
+      "archetype:black-ankle-boots",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 26,
+  },
+  {
+    "archetypeId": "black-flats",
+    "exampleOutfitItemIds": [
+      "blouse-floral",
+      "skirt-midi-pleated",
+      "archetype:black-flats",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 26,
+  },
+  {
+    "archetypeId": "black-sneakers",
+    "exampleOutfitItemIds": [
+      "blouse-floral",
+      "jeans-dark",
+      "archetype:black-sneakers",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 26,
+  },
+  {
+    "archetypeId": "black-jeans",
+    "exampleOutfitItemIds": [
+      "blouse-floral",
+      "archetype:black-jeans",
+      "loafers-brown",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 22,
+  },
+  {
+    "archetypeId": "black-tote",
+    "exampleOutfitItemIds": [
+      "blouse-floral",
+      "jeans-light",
+      "boots-black-chelsea",
+      "archetype:black-tote",
+    ],
+    "improvedCount": 65,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+  {
+    "archetypeId": "brown-crossbody",
+    "exampleOutfitItemIds": [
+      "blouse-floral",
+      "jeans-light",
+      "boots-black-chelsea",
+      "archetype:brown-crossbody",
+    ],
+    "improvedCount": 65,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+  {
+    "archetypeId": "black-leather-jacket",
+    "exampleOutfitItemIds": [
+      "blouse-floral",
+      "chinos-beige",
+      "boots-black-chelsea",
+      "archetype:black-leather-jacket",
+    ],
+    "improvedCount": 28,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+]
+`;
+
+exports[`gaps golden output findGaps fixture 2`] = `
+[
+  {
+    "archetypeId": "light-blue-shirt",
+    "exampleOutfitItemIds": [
+      "archetype:light-blue-shirt",
+      "skirt-midi-pleated",
+      "loafers-brown",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 28,
+  },
+  {
+    "archetypeId": "black-ankle-boots",
+    "exampleOutfitItemIds": [
+      "blouse-floral",
+      "skirt-midi-pleated",
+      "archetype:black-ankle-boots",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 26,
+  },
+  {
+    "archetypeId": "black-flats",
+    "exampleOutfitItemIds": [
+      "blouse-floral",
+      "skirt-midi-pleated",
+      "archetype:black-flats",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 26,
+  },
+  {
+    "archetypeId": "black-sneakers",
+    "exampleOutfitItemIds": [
+      "blouse-floral",
+      "jeans-dark",
+      "archetype:black-sneakers",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 26,
+  },
+  {
+    "archetypeId": "black-jeans",
+    "exampleOutfitItemIds": [
+      "blouse-floral",
+      "archetype:black-jeans",
+      "loafers-brown",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 22,
+  },
+  {
+    "archetypeId": "black-tote",
+    "exampleOutfitItemIds": [
+      "blouse-floral",
+      "jeans-light",
+      "boots-black-chelsea",
+      "archetype:black-tote",
+    ],
+    "improvedCount": 65,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+  {
+    "archetypeId": "brown-crossbody",
+    "exampleOutfitItemIds": [
+      "blouse-floral",
+      "jeans-light",
+      "boots-black-chelsea",
+      "archetype:brown-crossbody",
+    ],
+    "improvedCount": 65,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+  {
+    "archetypeId": "black-leather-jacket",
+    "exampleOutfitItemIds": [
+      "blouse-floral",
+      "chinos-beige",
+      "boots-black-chelsea",
+      "archetype:black-leather-jacket",
+    ],
+    "improvedCount": 28,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+]
+`;
+
+exports[`gaps golden output findGaps synthetic-60-seed3 1`] = `
+[
+  {
+    "archetypeId": "beige-chinos",
+    "exampleOutfitItemIds": [
+      "syn-048",
+      "archetype:beige-chinos",
+      "syn-025",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 79,
+  },
+  {
+    "archetypeId": "black-midi-skirt",
+    "exampleOutfitItemIds": [
+      "syn-034",
+      "archetype:black-midi-skirt",
+      "syn-025",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 75,
+  },
+  {
+    "archetypeId": "navy-chinos",
+    "exampleOutfitItemIds": [
+      "syn-034",
+      "archetype:navy-chinos",
+      "syn-025",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 75,
+  },
+  {
+    "archetypeId": "white-oxford-shirt",
+    "exampleOutfitItemIds": [
+      "archetype:white-oxford-shirt",
+      "syn-050",
+      "syn-055",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 74,
+  },
+  {
+    "archetypeId": "black-ankle-boots",
+    "exampleOutfitItemIds": [
+      "syn-042",
+      "syn-050",
+      "archetype:black-ankle-boots",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 53,
+  },
+  {
+    "archetypeId": "black-tote",
+    "exampleOutfitItemIds": [
+      "syn-004",
+      "syn-014",
+      "archetype:black-tote",
+    ],
+    "improvedCount": 203,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+  {
+    "archetypeId": "brown-crossbody",
+    "exampleOutfitItemIds": [
+      "syn-004",
+      "syn-014",
+      "archetype:brown-crossbody",
+    ],
+    "improvedCount": 203,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+  {
+    "archetypeId": "black-leather-jacket",
+    "exampleOutfitItemIds": [
+      "syn-022",
+      "syn-058",
+      "archetype:black-leather-jacket",
+    ],
+    "improvedCount": 167,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+]
+`;
+
+exports[`gaps golden output findGaps synthetic-60-seed3 2`] = `
+[
+  {
+    "archetypeId": "beige-chinos",
+    "exampleOutfitItemIds": [
+      "syn-048",
+      "archetype:beige-chinos",
+      "syn-025",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 79,
+  },
+  {
+    "archetypeId": "black-midi-skirt",
+    "exampleOutfitItemIds": [
+      "syn-034",
+      "archetype:black-midi-skirt",
+      "syn-025",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 75,
+  },
+  {
+    "archetypeId": "navy-chinos",
+    "exampleOutfitItemIds": [
+      "syn-034",
+      "archetype:navy-chinos",
+      "syn-025",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 75,
+  },
+  {
+    "archetypeId": "white-oxford-shirt",
+    "exampleOutfitItemIds": [
+      "archetype:white-oxford-shirt",
+      "syn-050",
+      "syn-055",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 74,
+  },
+  {
+    "archetypeId": "black-ankle-boots",
+    "exampleOutfitItemIds": [
+      "syn-042",
+      "syn-050",
+      "archetype:black-ankle-boots",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 53,
+  },
+  {
+    "archetypeId": "black-tote",
+    "exampleOutfitItemIds": [
+      "syn-004",
+      "syn-014",
+      "archetype:black-tote",
+    ],
+    "improvedCount": 203,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+  {
+    "archetypeId": "brown-crossbody",
+    "exampleOutfitItemIds": [
+      "syn-004",
+      "syn-014",
+      "archetype:brown-crossbody",
+    ],
+    "improvedCount": 203,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+  {
+    "archetypeId": "black-leather-jacket",
+    "exampleOutfitItemIds": [
+      "syn-022",
+      "syn-058",
+      "archetype:black-leather-jacket",
+    ],
+    "improvedCount": 167,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+]
+`;
+
+exports[`gaps golden output findGaps synthetic-150-seed7 1`] = `
+[
+  {
+    "archetypeId": "white-oxford-shirt",
+    "exampleOutfitItemIds": [
+      "archetype:white-oxford-shirt",
+      "syn-027",
+      "syn-093",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 311,
+  },
+  {
+    "archetypeId": "black-tee",
+    "exampleOutfitItemIds": [
+      "archetype:black-tee",
+      "syn-090",
+      "syn-014",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 233,
+  },
+  {
+    "archetypeId": "black-midi-skirt",
+    "exampleOutfitItemIds": [
+      "syn-112",
+      "archetype:black-midi-skirt",
+      "syn-025",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 221,
+  },
+  {
+    "archetypeId": "navy-chinos",
+    "exampleOutfitItemIds": [
+      "syn-112",
+      "archetype:navy-chinos",
+      "syn-025",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 214,
+  },
+  {
+    "archetypeId": "black-trousers",
+    "exampleOutfitItemIds": [
+      "syn-000",
+      "archetype:black-trousers",
+      "syn-106",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 179,
+  },
+  {
+    "archetypeId": "black-tote",
+    "exampleOutfitItemIds": [
+      "syn-000",
+      "syn-010",
+      "syn-130",
+      "archetype:black-tote",
+    ],
+    "improvedCount": 167,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+  {
+    "archetypeId": "brown-crossbody",
+    "exampleOutfitItemIds": [
+      "syn-000",
+      "syn-010",
+      "syn-130",
+      "archetype:brown-crossbody",
+    ],
+    "improvedCount": 167,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+  {
+    "archetypeId": "navy-blazer",
+    "exampleOutfitItemIds": [
+      "syn-000",
+      "syn-017",
+      "syn-073",
+      "archetype:navy-blazer",
+    ],
+    "improvedCount": 61,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+]
+`;
+
+exports[`gaps golden output findGaps synthetic-150-seed7 2`] = `
+[
+  {
+    "archetypeId": "white-oxford-shirt",
+    "exampleOutfitItemIds": [
+      "archetype:white-oxford-shirt",
+      "syn-031",
+      "syn-117",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 317,
+  },
+  {
+    "archetypeId": "black-tee",
+    "exampleOutfitItemIds": [
+      "archetype:black-tee",
+      "syn-057",
+      "syn-014",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 228,
+  },
+  {
+    "archetypeId": "black-midi-skirt",
+    "exampleOutfitItemIds": [
+      "syn-112",
+      "archetype:black-midi-skirt",
+      "syn-025",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 219,
+  },
+  {
+    "archetypeId": "navy-chinos",
+    "exampleOutfitItemIds": [
+      "syn-112",
+      "archetype:navy-chinos",
+      "syn-025",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 212,
+  },
+  {
+    "archetypeId": "black-trousers",
+    "exampleOutfitItemIds": [
+      "syn-000",
+      "archetype:black-trousers",
+      "syn-140",
+    ],
+    "improvedCount": 0,
+    "kind": "core",
+    "unlockedCount": 180,
+  },
+  {
+    "archetypeId": "black-tote",
+    "exampleOutfitItemIds": [
+      "syn-000",
+      "syn-090",
+      "syn-036",
+      "archetype:black-tote",
+    ],
+    "improvedCount": 184,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+  {
+    "archetypeId": "brown-crossbody",
+    "exampleOutfitItemIds": [
+      "syn-000",
+      "syn-090",
+      "syn-036",
+      "archetype:brown-crossbody",
+    ],
+    "improvedCount": 184,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+  {
+    "archetypeId": "navy-blazer",
+    "exampleOutfitItemIds": [
+      "syn-000",
+      "syn-017",
+      "syn-012",
+      "archetype:navy-blazer",
+    ],
+    "improvedCount": 65,
+    "kind": "addon",
+    "unlockedCount": 0,
+  },
+]
+`;
+
+exports[`gaps golden output findOrphans duplicated-150 1`] = `[]`;
+
+exports[`gaps golden output findOrphans duplicated-150 2`] = `[]`;
+
+exports[`gaps golden output findOrphans fixture 1`] = `[]`;
+
+exports[`gaps golden output findOrphans fixture 2`] = `[]`;
+
+exports[`gaps golden output findOrphans synthetic-60-seed3 1`] = `
+[
+  {
+    "goodOutfitCount": 0,
+    "itemId": "syn-057",
+    "wouldHelp": [],
+  },
+]
+`;
+
+exports[`gaps golden output findOrphans synthetic-60-seed3 2`] = `
+[
+  {
+    "goodOutfitCount": 0,
+    "itemId": "syn-057",
+    "wouldHelp": [],
+  },
+]
+`;
+
+exports[`gaps golden output findOrphans synthetic-150-seed7 1`] = `
+[
+  {
+    "goodOutfitCount": 0,
+    "itemId": "syn-001",
+    "wouldHelp": [],
+  },
+  {
+    "goodOutfitCount": 0,
+    "itemId": "syn-009",
+    "wouldHelp": [],
+  },
+  {
+    "goodOutfitCount": 0,
+    "itemId": "syn-034",
+    "wouldHelp": [],
+  },
+  {
+    "goodOutfitCount": 0,
+    "itemId": "syn-045",
+    "wouldHelp": [],
+  },
+  {
+    "goodOutfitCount": 0,
+    "itemId": "syn-050",
+    "wouldHelp": [
+      "black-midi-skirt",
+      "navy-chinos",
+    ],
+  },
+  {
+    "goodOutfitCount": 2,
+    "itemId": "syn-015",
+    "wouldHelp": [],
+  },
+]
+`;
+
+exports[`gaps golden output findOrphans synthetic-150-seed7 2`] = `
+[
+  {
+    "goodOutfitCount": 0,
+    "itemId": "syn-001",
+    "wouldHelp": [],
+  },
+  {
+    "goodOutfitCount": 0,
+    "itemId": "syn-009",
+    "wouldHelp": [],
+  },
+  {
+    "goodOutfitCount": 0,
+    "itemId": "syn-026",
+    "wouldHelp": [
+      "black-ankle-boots",
+      "black-chelsea-boots",
+      "black-flats",
+    ],
+  },
+  {
+    "goodOutfitCount": 0,
+    "itemId": "syn-034",
+    "wouldHelp": [],
+  },
+  {
+    "goodOutfitCount": 0,
+    "itemId": "syn-045",
+    "wouldHelp": [],
+  },
+  {
+    "goodOutfitCount": 0,
+    "itemId": "syn-050",
+    "wouldHelp": [
+      "black-midi-skirt",
+      "navy-chinos",
+    ],
+  },
+  {
+    "goodOutfitCount": 2,
+    "itemId": "syn-015",
+    "wouldHelp": [],
+  },
+  {
+    "goodOutfitCount": 2,
+    "itemId": "syn-081",
+    "wouldHelp": [
+      "black-ankle-boots",
+      "black-flats",
+      "black-sneakers",
+    ],
+  },
+]
+`;
