@@ -293,12 +293,21 @@ findOrphans(items, opts): OrphanReport[] // { itemId, goodOutfitCount, wouldHelp
 
 - `archetypes.ts` holds ~40 staple pieces as attribute-only virtual items (white tee, dark jeans,
   white sneakers, brown leather belt, navy blazer, black ankle boots, beige trench…).
-- An archetype is **covered** if the closet already has an item with the same subcategory and
-  colour family; covered archetypes are skipped.
-- For each remaining archetype: count core combos scoring ≥ `GOOD_OUTFIT_THRESHOLD` (70) with and
-  without it (occasion `any`, no weather, enumeration capped at `MAX_CORE_COMBOS`). The difference
-  is `unlockedCount`. Return the top 5 with one example outfit each.
-- **Orphans:** active main-slot items that appear in fewer than 3 good outfits.
+- An archetype is **covered** if the closet has an active item with the same subcategory and
+  colour family: both neutral (denim counts as neutral) with the same colour name, or both accents
+  with hues within 30°. Covered archetypes are skipped.
+- **Core archetypes** (base, bottom, one-piece, shoes): count core combos (base × bottom × shoes,
+  one-piece × shoes) scoring ≥ `GOOD_OUTFIT_THRESHOLD` (85, roughly the better 40% of the fixture
+  closet's combos) with and without it (occasion `any`, no weather, core pieces only, sampled with
+  a seed above the caps). The difference is `unlockedCount` (equal to the good combos containing
+  the archetype). Top 5, ties broken by mean score of those combos, then `archetypeId`.
+- **Add-on archetypes** (outer, mid, belt, bag, accessories): `improvedCount` = good core combos
+  where adding the archetype raises the score by ≥ `ADD_ON_MIN_GAIN` (belts only with
+  belt-compatible bottoms). Top 3, same tie-breaks. Each suggestion carries one example outfit.
+- **Orphans:** active main-slot items in fewer than 3 good combos; `wouldHelp` lists up to 3 core
+  archetypes that lift the item's count most.
+- **Duplicates:** active items with the same subcategory, primary colour name and pattern whose
+  primary colours differ by ΔE < 10.
 
 ## 9. Testing requirements
 
