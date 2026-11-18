@@ -2,7 +2,8 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { CutoutCrop, Item, ItemStatus } from '@/core/model/types';
+import { FIT_MIN_CONFIDENCE } from '@/core/fit';
+import type { CutoutCrop, GarmentRig, Item, ItemStatus } from '@/core/model/types';
 import { getServices, type TouchupResult } from '@/services';
 import { useCloset } from '@/state';
 import { Button } from '@/ui/Button';
@@ -19,7 +20,12 @@ import { ItemImage } from '../list/ItemImage';
 import { useClosetHydration } from '../list/useClosetHydration';
 import { EditItemSheet, type ItemEdits } from './EditItemSheet';
 import { TouchupOverlay } from '../touchup/TouchupOverlay';
+import { getLazyRigDetector } from '../../shared/fit/fitServices';
+import { detectItemRig, isFittable } from '../../shared/fit/rigLifecycle';
+import { rigFor } from '../../shared/fit/useFittedLayers';
+import { GarmentPointsOverlay } from '../points/GarmentPointsOverlay';
 import { recutItem, replaceCutoutImages } from './recut';
+import { refitAfterCutout } from './refit';
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
@@ -39,12 +45,16 @@ export function ItemDetailScreen({ id }: { id: string }) {
   const [deleted, setDeleted] = useState(false);
   const [editing, setEditing] = useState(false);
   const [recut, setRecut] = useState<'idle' | 'working' | 'failed' | 'done'>('idle');
+  /** The cutout changed and the user's hand-set garment points were replaced. */
+  const [refitNote, setRefitNote] = useState(false);
 
   const runRecut = async (current: Item) => {
     setRecut('working');
     try {
       const result = await recutItem(getServices(), current);
-      updateItem(current.id, result);
+      const refit = await refitAfterCutout(getServices(), current, result);
+      updateItem(current.id, { ...result, fit: refit.fit });
+      setRefitNote(refit.replacedEdited);
       setRecut('done');
     } catch {
       setRecut('failed');
@@ -78,11 +88,42 @@ export function ItemDetailScreen({ id }: { id: string }) {
   const saveTouchup = async (current: Item, result: TouchupResult) => {
     try {
       const saved = await replaceCutoutImages(getServices().images, current, result);
-      updateItem(current.id, saved);
+      const refit = await refitAfterCutout(getServices(), current, saved);
+      updateItem(current.id, { ...saved, fit: refit.fit });
+      setRefitNote(refit.replacedEdited);
       setTouchup(null);
     } catch {
       setTouchup(null);
       setTouchupError(true);
+    }
+  };
+
+  const [points, setPoints] = useState<
+    | { state: 'opening' }
+    | { state: 'open'; cutoutUri: string; initial: GarmentRig; detected?: GarmentRig }
+    | null
+  >(null);
+  const [pointsError, setPointsError] = useState(false);
+
+  const openPoints = async (current: Item) => {
+    setPointsError(false);
+    setPoints({ state: 'opening' });
+    try {
+      const { images, pixels } = getServices();
+      const cutoutUri = await images.uri(current.images.cutoutId);
+      const stored = rigFor(current, getLazyRigDetector());
+      const fresh = await detectItemRig(pixels, current, cutoutUri);
+      const initial = stored ?? fresh;
+      if (!initial) {
+        setPoints(null);
+        setPointsError(true);
+        return;
+      }
+      const detected = fresh ?? (stored && !stored.edited ? stored : undefined);
+      setPoints({ state: 'open', cutoutUri, initial, ...(detected ? { detected } : {}) });
+    } catch {
+      setPoints(null);
+      setPointsError(true);
     }
   };
 
@@ -101,6 +142,9 @@ export function ItemDetailScreen({ id }: { id: string }) {
           onRecut={() => void runRecut(item)}
           onTouchup={() => void openTouchup(item)}
           touchupState={touchup?.state === 'opening' ? 'opening' : touchupError ? 'failed' : 'idle'}
+          refitNote={refitNote}
+          onPoints={() => void openPoints(item)}
+          pointsState={points?.state === 'opening' ? 'opening' : pointsError ? 'failed' : 'idle'}
           onDelete={() => {
             removeItem(id);
             setDeleted(true);
@@ -113,6 +157,19 @@ export function ItemDetailScreen({ id }: { id: string }) {
             crop={touchup.crop}
             onCancel={() => setTouchup(null)}
             onDone={(result) => void saveTouchup(item, result)}
+          />
+        ) : null}
+        {points?.state === 'open' ? (
+          <GarmentPointsOverlay
+            item={item}
+            cutoutUri={points.cutoutUri}
+            initial={points.initial}
+            detected={points.detected}
+            onCancel={() => setPoints(null)}
+            onSave={(fit) => {
+              updateItem(id, { fit });
+              setPoints(null);
+            }}
           />
         ) : null}
         <EditItemSheet
@@ -193,6 +250,9 @@ interface ItemBodyProps {
   onRecut: () => void;
   onTouchup: () => void;
   touchupState: 'idle' | 'opening' | 'failed';
+  refitNote: boolean;
+  onPoints: () => void;
+  pointsState: 'idle' | 'opening' | 'failed';
   onDelete: () => void;
 }
 
@@ -205,8 +265,14 @@ function ItemBody({
   onRecut,
   onTouchup,
   touchupState,
+  refitNote,
+  onPoints,
+  pointsState,
   onDelete,
 }: ItemBodyProps) {
+  const fittable = getServices().warper.available && isFittable(item);
+  const unsure =
+    item.fit !== undefined && !item.fit.edited && item.fit.confidence < FIT_MIN_CONFIDENCE;
   const rows: [string, string][] = [
     ['Category', CATEGORY_LABELS[item.category]],
     ['Pattern', PATTERN_LABELS[item.pattern]],
@@ -307,6 +373,39 @@ function ItemBody({
           {recut === 'done' ? (
             <Text style={styles.recutNote} testID="item-recut-done">
               Background removed.
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
+      {fittable ? (
+        <View style={styles.recut}>
+          <Button
+            label={unsure ? 'Check garment points' : 'Garment points'}
+            icon="locate-outline"
+            variant={unsure ? 'primary' : 'secondary'}
+            loading={pointsState === 'opening'}
+            onPress={onPoints}
+            accessibilityLabel={
+              unsure
+                ? 'Check garment points: we were not sure where the collar, sleeves and hem are'
+                : 'Garment points: adjust how this piece fits your body'
+            }
+            testID="item-points"
+          />
+          {unsure ? (
+            <Text style={styles.recutNote} testID="item-points-hint">
+              We were not sure where the collar, sleeves and hem are. A quick check helps it fit.
+            </Text>
+          ) : null}
+          {pointsState === 'failed' ? (
+            <Text accessibilityRole="alert" style={styles.recutError} testID="item-points-error">
+              {'⚠ We couldn\u2019t find garment points on this picture.'}
+            </Text>
+          ) : null}
+          {refitNote ? (
+            <Text style={styles.recutNote} testID="item-points-reset-note">
+              The outline changed, so garment points were found again. Your adjusted points were
+              replaced.
             </Text>
           ) : null}
         </View>

@@ -197,4 +197,6 @@ export interface GarmentWarper {
     mesh: FitMesh,
     pixelsPerUnit: number,
   ): Promise<{ uri: string; bounds: FitMesh['bounds'] }>;
+  /** Frees the resource behind a URI `render` returned (an object URL on web). Optional. */
+  release?(uri: string): void;
 }

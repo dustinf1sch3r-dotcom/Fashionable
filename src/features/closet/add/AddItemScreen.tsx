@@ -9,6 +9,7 @@ import { getServices, type TouchupResult } from '@/services';
 import { getStores, hydrateAll } from '@/state';
 import { IconButton } from '@/ui/IconButton';
 import { colors, radius, spacing, typography } from '@/ui/theme';
+import { detectItemRig } from '../../shared/fit/rigLifecycle';
 import { TouchupOverlay } from '../touchup/TouchupOverlay';
 import { PickStep } from './PickStep';
 import { TagForm } from './TagForm';
@@ -134,7 +135,13 @@ export function AddItemScreen() {
       const closet = getStores().closet;
       // Loading after the add would replace the in-memory list and drop the new item.
       if (closet.getState().status !== 'ready') await hydrateAll();
-      closet.getState().addItem(toNewItemInit(state, images, cutout));
+      const cutoutUri = useOriginal ? undefined : step.photo.cutout?.image.uri;
+      const fit = cutoutUri
+        ? await detectItemRig(getServices().pixels, state, cutoutUri)
+        : undefined;
+      closet
+        .getState()
+        .addItem({ ...toNewItemInit(state, images, cutout), ...(fit ? { fit } : {}) });
       await closet.getState().flush();
       leave();
     } catch {

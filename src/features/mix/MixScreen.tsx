@@ -28,6 +28,7 @@ import { FitBar } from '@/ui/mannequin/FitBar';
 import { Mannequin } from '@/ui/mannequin/Mannequin';
 import { TryOnToggle } from '@/ui/TryOnToggle';
 import { colors, radius, spacing, typography } from '@/ui/theme';
+import { useFittedLayers } from '../shared/fit/useFittedLayers';
 import { useBody } from '../shared/useBody';
 import { CompactButton } from './CompactButton';
 import { hasBaseTop, prunedOverrides } from './fitOverrides';
@@ -258,6 +259,11 @@ export function MixScreen() {
     ),
   );
 
+  const fitted = useFittedLayers(selection, body, {
+    imageUris: cutoutUris,
+    displayWidth: mannequinWidth,
+  });
+
   if (closetStatus === 'idle' || closetStatus === 'loading') {
     return (
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']} testID="screen-mix">
@@ -301,6 +307,7 @@ export function MixScreen() {
                 items={selection}
                 outfit={draft}
                 imageUris={cutoutUris}
+                fitted={fitted}
                 selectedItemId={garment?.id}
                 onSelectItem={(id) => {
                   setGarmentId(id);

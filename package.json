@@ -58,7 +58,8 @@
     "test": "jest",
     "e2e": "playwright test",
     "check": "npm run typecheck && npm run lint && npm test",
-    "licenses": "node scripts/check-licenses.js"
+    "licenses": "node scripts/check-licenses.js",
+    "fit-gallery": "node scripts/fit-gallery.mjs"
   },
   "private": true
 }

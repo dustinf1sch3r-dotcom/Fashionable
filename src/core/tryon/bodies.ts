@@ -42,6 +42,15 @@ export const BODY_A: BodyTemplate = {
   },
 };
 
+/**
+ * Explicit elbows for BODY_A (docs/TRY_ON.md §12.3): halfway down the relaxed A-pose arm, a little
+ * inside the shoulder–wrist line so the forearm angles outwards.
+ */
+export const BODY_A_ELBOWS: { elbowL: Point; elbowR: Point } = {
+  elbowL: p(240, 720),
+  elbowR: p(760, 720),
+};
+
 export const BODIES: Readonly<Record<string, BodyTemplate>> = { [BODY_A.id]: BODY_A };
 
 /** Template by id, or undefined when unknown. */

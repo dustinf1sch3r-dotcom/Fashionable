@@ -1,13 +1,26 @@
 import { applyMaskAlpha, cropFromTrim, fitWithin, resizeMask, trimToAlpha } from '@/core/image';
 import type { CutoutCrop } from '@/core/model/types';
 
+const RAW_SVG_PREFIX = 'data:image/svg+xml;utf8,';
+
+/**
+ * The URI as a browser can load it. The app's flat garment art is raw SVG markup after the prefix
+ * (react-native-web encodes it for `<Image>` itself); loaded by hand, a `#` in a colour would start
+ * a URL fragment, so the markup is encoded here.
+ */
+function loadableUri(uri: string): string {
+  return uri.startsWith(RAW_SVG_PREFIX)
+    ? `data:image/svg+xml,${encodeURIComponent(uri.slice(RAW_SVG_PREFIX.length))}`
+    : uri;
+}
+
 /** Decodes an image URI (object URL, data URL or http URL) into an element. */
 export function loadImage(uri: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error('Could not decode the image'));
-    img.src = uri;
+    img.src = loadableUri(uri);
   });
 }
 

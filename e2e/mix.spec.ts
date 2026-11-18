@@ -226,6 +226,17 @@ async function box(locator: Locator) {
   return b;
 }
 
+/**
+ * The garment's box once it is drawn from its fitted picture. Tops and bottoms first show the
+ * rigid picture and cross-fade to the fitted one, whose box differs (docs/TRY_ON.md §12.5), so
+ * measuring earlier would compare two different pictures.
+ */
+async function settledBox(page: Page, key: string) {
+  await expect(page.getByTestId(`mannequin-fitted-${id(key)}`)).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId(`mannequin-image-${id(key)}`)).toHaveCount(0);
+  return box(garment(page, key));
+}
+
 async function stored(page: Page, collection: string): Promise<Record<string, unknown>[]> {
   return page.evaluate((key) => {
     const raw = localStorage.getItem(`fashionable/v1/${key}`);
@@ -358,8 +369,9 @@ test.describe('mix screen', () => {
   }) => {
     await wear(page, 'tee-navy', 'jeans-dark', 'sneakers-white');
     const mannequin = await box(page.getByTestId('mannequin'));
-    const original = await box(garment(page, 'tee-navy'));
+    const original = await settledBox(page, 'tee-navy');
 
+    await settledBox(page, 'tee-navy');
     await garment(page, 'tee-navy').click();
     await expect(page.getByTestId('fit-bar')).toBeVisible();
     await expect(page.getByTestId('fit-bar')).toContainText('Navy tee');
@@ -372,7 +384,7 @@ test.describe('mix screen', () => {
     await page.getByTestId('fit-rotate-right').click();
     await expect(page.getByTestId('fit-scale-value')).toHaveText('110%');
     await expect(page.getByTestId('fit-rotation-value')).toHaveText('5°');
-    const adjusted = await box(garment(page, 'tee-navy'));
+    const adjusted = await settledBox(page, 'tee-navy');
     expect(adjusted.width).toBeGreaterThan(original.width * 1.08);
     expect(adjusted.y + adjusted.height / 2).toBeGreaterThan(original.y + original.height / 2);
 
@@ -386,12 +398,13 @@ test.describe('mix screen', () => {
     await option(page, 'base', 'tee-navy').click();
     await expect(garment(page, 'tee-navy')).toBeVisible();
     const m2 = await box(page.getByTestId('mannequin'));
-    const after = await box(garment(page, 'tee-navy'));
+    const after = await settledBox(page, 'tee-navy');
     expect(m2.width).toBeCloseTo(mannequin.width, 0);
     expect(after.width / m2.width).toBeCloseTo(adjusted.width / mannequin.width, 1);
     expect(after.width).toBeGreaterThan(original.width * 1.08);
 
     // Reset and save puts the item back to its default placement.
+    await settledBox(page, 'tee-navy');
     await garment(page, 'tee-navy').click();
     await page.getByTestId('fit-reset').click();
     await page.getByTestId('fit-save-item').click();
@@ -400,11 +413,12 @@ test.describe('mix screen', () => {
       .not.toContain('"scale":1.1');
     await page.getByTestId('fit-done').click();
     await expect(page.getByTestId('mix-rows')).toBeVisible();
-    expect((await box(garment(page, 'tee-navy'))).width).toBeCloseTo(original.width, 0);
+    expect((await settledBox(page, 'tee-navy')).width).toBeCloseTo(original.width, 0);
   });
 
   test('limits: scale stops at 200% and rotation at 30 degrees', async ({ page }) => {
     await option(page, 'base', 'tee-navy').click();
+    await settledBox(page, 'tee-navy');
     await garment(page, 'tee-navy').click();
     for (let i = 0; i < 25; i++) {
       if (await page.getByTestId('fit-scale-up').isEnabled())
@@ -422,9 +436,10 @@ test.describe('mix screen', () => {
     page,
   }) => {
     await wear(page, 'tee-navy', 'jeans-dark', 'sneakers-white');
+    await settledBox(page, 'tee-navy');
     await garment(page, 'tee-navy').click();
     await expect(page.getByTestId('fit-bar')).toBeVisible();
-    const start = await box(garment(page, 'tee-navy'));
+    const start = await settledBox(page, 'tee-navy');
     const cx = start.x + start.width / 2;
     const cy = start.y + start.height / 3;
 
@@ -433,12 +448,12 @@ test.describe('mix screen', () => {
     await page.mouse.move(cx + 10, cy + 8, { steps: 4 });
     await page.mouse.move(cx + 30, cy + 20, { steps: 6 });
     // Live: the garment has already moved before the button is released.
-    const during = await box(garment(page, 'tee-navy'));
+    const during = await settledBox(page, 'tee-navy');
     expect(during.x - start.x).toBeGreaterThan(15);
     await page.mouse.move(cx + 40, cy + 30, { steps: 4 });
     await page.mouse.up();
 
-    const end = await box(garment(page, 'tee-navy'));
+    const end = await settledBox(page, 'tee-navy');
     expect(end.x - start.x).toBeGreaterThan(30);
     expect(end.x - start.x).toBeLessThan(46);
     expect(end.y - start.y).toBeGreaterThan(22);
@@ -453,19 +468,20 @@ test.describe('mix screen', () => {
 
   test('a drag does not start without a selected garment', async ({ page }) => {
     await wear(page, 'tee-navy', 'jeans-dark', 'sneakers-white');
-    const start = await box(garment(page, 'tee-navy'));
+    const start = await settledBox(page, 'tee-navy');
     await page.mouse.move(start.x + start.width / 2, start.y + start.height / 3);
     await page.mouse.down();
     await page.mouse.move(start.x + start.width / 2 + 40, start.y + start.height / 3 + 30, {
       steps: 8,
     });
     await page.mouse.up();
-    expect((await box(garment(page, 'tee-navy'))).x).toBeCloseTo(start.x, 0);
+    expect((await settledBox(page, 'tee-navy')).x).toBeCloseTo(start.x, 0);
   });
 
   test('"Just this outfit" is saved with the outfit, not with the item', async ({ page }) => {
     await wear(page, 'tee-navy', 'jeans-dark', 'sneakers-white');
-    const original = await box(garment(page, 'tee-navy'));
+    const original = await settledBox(page, 'tee-navy');
+    await settledBox(page, 'tee-navy');
     await garment(page, 'tee-navy').click();
     await page.getByTestId('fit-scale-up').click();
     await page.getByTestId('fit-scale-up').click();
@@ -492,7 +508,7 @@ test.describe('mix screen', () => {
     await openMix(page, `?outfitId=${outfit?.id}`);
     await expect(layers(page)).toHaveCount(3);
     await expect(page.getByTestId('mix-save')).toContainText('Update outfit');
-    const reopened = await box(garment(page, 'tee-navy'));
+    const reopened = await settledBox(page, 'tee-navy');
     const m = await box(page.getByTestId('mannequin'));
     expect(reopened.width / m.width).toBeGreaterThan((original.width / m.width) * 1.08);
   });
@@ -543,7 +559,7 @@ test('opens a saved outfit from ?outfitId, including tuck and fit overrides', as
   await expect(page.getByTestId('mix-tuck')).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByTestId('mix-save')).toContainText('Update outfit');
   const m = await box(page.getByTestId('mannequin'));
-  const trousers = await box(garment(page, 'trousers-grey'));
+  const trousers = await settledBox(page, 'trousers-grey');
   // Anchor width for a bottom is about the hips (340 units): 1.3x of that.
   expect(trousers.width / m.width).toBeGreaterThan(0.4);
   await expect(page.getByTestId('mix-missing')).toHaveCount(0);

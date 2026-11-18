@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Image, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Line } from 'react-native-svg';
 import type { BodyLandmarks, ID, Item, Point } from '@/core/model/types';
 import { Mannequin } from '@/ui/mannequin';
+import { useFittedLayers } from '../shared/fit/useFittedLayers';
 import { colors, radius, spacing, typography } from '@/ui/theme';
 import { LandmarkHandle } from './LandmarkHandle';
 import {
@@ -53,6 +54,12 @@ export function LandmarkEditor({ uri, landmarks, onChange, preview, sample }: La
   const [width, setWidth] = useState(0);
   const [dragging, setDragging] = useState<HandleKey | null>(null);
   const height = (width * CANVAS_UNITS.height) / CANVAS_UNITS.width;
+  const previewBody = useMemo(() => ({ id: 'photo', landmarks }), [landmarks]);
+  const fitted = useFittedLayers(sample.items, previewBody, {
+    imageUris: sample.imageUris,
+    displayWidth: width || 300,
+    enabled: preview,
+  });
 
   const toPx = (p: Point): Point => ({ x: unitsToPx(p.x, width), y: unitsToPx(p.y, width) });
   const active = dragging ? toPx(landmarks[dragging]) : null;
@@ -70,6 +77,7 @@ export function LandmarkEditor({ uri, landmarks, onChange, preview, sample }: La
           backdrop={uri}
           items={sample.items}
           imageUris={sample.imageUris}
+          fitted={fitted}
           interactive={false}
           testID="me-preview-mannequin"
         />

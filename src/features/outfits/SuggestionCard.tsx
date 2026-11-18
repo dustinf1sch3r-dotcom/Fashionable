@@ -8,6 +8,7 @@ import { Mannequin } from '@/ui/mannequin';
 import { colors, iconSize, radius, spacing, typography } from '@/ui/theme';
 import { WoreTodayButton } from '../calendar/WoreTodayButton';
 import { itemDisplayName } from '../closet/list/filter';
+import { useFittedLayers } from '../shared/fit/useFittedLayers';
 import { ItemThumb } from './ItemThumb';
 import { topReasons } from './reasonText';
 import { scoreLabel } from './scoreLabel';
@@ -53,6 +54,7 @@ export function SuggestionCard({
   onSave,
   onOpenSaved,
 }: SuggestionCardProps) {
+  const fitted = useFittedLayers(items, body, { imageUris, displayWidth: MANNEQUIN_WIDTH });
   const names = new Map(items.map((i) => [i.id, itemDisplayName(i)]));
   const reasons = topReasons(suggestion.reasons, { itemName: (id) => names.get(id) });
   const label = scoreLabel(suggestion.score);
@@ -66,6 +68,7 @@ export function SuggestionCard({
             {...(backdrop ? { backdrop } : {})}
             items={items}
             imageUris={imageUris}
+            fitted={fitted}
             interactive={false}
             testID={`outfit-mannequin-${index}`}
           />

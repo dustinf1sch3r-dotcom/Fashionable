@@ -106,4 +106,88 @@ describe('Mannequin', () => {
     const [p] = placeOutfit([items[0] as (typeof items)[number]], BODY_A);
     expect(placementStyle(p as NonNullable<typeof p>)).not.toHaveProperty('transform');
   });
+
+  describe('fitted garments', () => {
+    const tee = fixtureById('tee-white');
+    const fittedTee = {
+      uri: 'blob:fitted-tee',
+      bounds: { x: 250, y: 380, width: 500, height: 560 },
+    };
+
+    it('draws a fitted item from its warped image at its own bounds, others stay rigid', async () => {
+      const jeans = fixtureById('jeans-dark');
+      const both = [tee, jeans];
+      const both_uris = Object.fromEntries(both.map((i) => [i.images.cutoutId, `uri://${i.id}`]));
+      await render(
+        <Mannequin
+          body={BODY_A}
+          items={both}
+          imageUris={both_uris}
+          fitted={{ [tee.id]: fittedTee }}
+        />,
+      );
+      const fitted = screen.getByTestId('mannequin-fitted-tee-white');
+      expect(fitted.props.source).toEqual({ uri: 'blob:fitted-tee' });
+      const s = styleOf('tee-white');
+      expect(parseFloat(s.left)).toBeCloseTo(25, 3);
+      expect(parseFloat(s.top)).toBeCloseTo(19, 3);
+      expect(parseFloat(s.width)).toBeCloseTo(50, 3);
+      expect(parseFloat(s.height)).toBeCloseTo(28, 3);
+      // the other garment is the plain picture
+      expect(screen.queryByTestId('mannequin-fitted-jeans-dark')).toBeNull();
+      expect(screen.getByTestId('mannequin-image-jeans-dark')).toBeTruthy();
+    });
+
+    it('keeps the layer order, including the tucked shirt', async () => {
+      const jeans = fixtureById('jeans-dark');
+      const outfit = newOutfit(
+        { itemIds: [tee.id, jeans.id], tucked: true },
+        fixedClock('2026-01-01T00:00:00.000Z'),
+        { uuid: () => 'o1' },
+      );
+      await render(
+        <Mannequin
+          body={BODY_A}
+          items={[tee, jeans]}
+          outfit={outfit}
+          imageUris={{}}
+          fitted={{ [tee.id]: fittedTee }}
+        />,
+      );
+      const z = placeOutfit([tee, jeans], BODY_A, outfit).find((p) => p.itemId === tee.id)?.z;
+      expect(styleOf('tee-white').zIndex).toBe(z);
+    });
+
+    it('applies the item fit on top of the fitted image', async () => {
+      const nudged = { ...tee, fitAdjust: { dx: 30, dy: -10, scale: 1, rotation: 6 } };
+      await render(
+        <Mannequin
+          body={BODY_A}
+          items={[nudged]}
+          imageUris={{}}
+          fitted={{ [tee.id]: fittedTee }}
+        />,
+      );
+      const s = styleOf('tee-white');
+      expect(parseFloat(s.left)).toBeCloseTo(28, 3);
+      expect(parseFloat(s.top)).toBeCloseTo(18.5, 3);
+      expect(s.transform).toEqual([{ rotate: '6deg' }]);
+    });
+
+    it('shows the rigid picture while no fitted image exists, and stays tappable', async () => {
+      const onSelect = jest.fn();
+      await render(
+        <Mannequin
+          body={BODY_A}
+          items={[tee]}
+          imageUris={{ [tee.images.cutoutId]: 'uri://tee' }}
+          onSelectItem={onSelect}
+        />,
+      );
+      expect(screen.getByTestId('mannequin-image-tee-white')).toBeTruthy();
+      expect(screen.queryByTestId('mannequin-fitted-tee-white')).toBeNull();
+      await fireEvent.press(screen.getByTestId('mannequin-item-tee-white'));
+      expect(onSelect).toHaveBeenCalledWith('tee-white');
+    });
+  });
 });

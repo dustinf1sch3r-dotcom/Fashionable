@@ -27,6 +27,7 @@ import { subcategoryLabel } from '../closet/labels';
 import { itemDisplayName } from '../closet/list/filter';
 import { autoName, outfitName } from '../outfits/naming';
 import { resolveOutfitItems } from '../outfits/outfitItems';
+import { useFittedLayers } from '../shared/fit/useFittedLayers';
 import { useBody, type UseBody } from '../shared/useBody';
 import { useImageUris } from '../shared/useImageUris';
 import { WeatherCard } from '../weather';
@@ -284,6 +285,10 @@ function DayLog({ log, today, byId, outfits, bodyView, onDelete, onYes, onNo }: 
   const units = useProfile((s) => s.profile?.units ?? 'metric');
   const resolved = resolveOutfitItems(log.itemIds, byId);
   const imageUris = useImageUris(resolved.items.map((i) => i.images.cutoutId));
+  const fitted = useFittedLayers(resolved.items, body, {
+    imageUris,
+    displayWidth: MANNEQUIN_WIDTH,
+  });
   // The saved outfit only supplies tuck and fit tweaks while the pieces still match it.
   const saved = log.outfitId ? outfits.find((o) => o.id === log.outfitId) : undefined;
   const outfit =
@@ -341,6 +346,7 @@ function DayLog({ log, today, byId, outfits, bodyView, onDelete, onYes, onNo }: 
               items={resolved.items}
               {...(outfit ? { outfit } : {})}
               imageUris={imageUris}
+              fitted={fitted}
               interactive={false}
               testID={`day-mannequin-${log.id}`}
             />

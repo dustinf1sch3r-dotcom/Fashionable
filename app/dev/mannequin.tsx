@@ -6,6 +6,7 @@ import { BODY_A } from '@/core/tryon/bodies';
 import { fixtureById } from '@/core/testing/fixtures';
 import type { ID, Item } from '@/core/model/types';
 import { ChipGroup } from '@/ui/ChipGroup';
+import { useFittedLayers } from '@/features/shared/fit/useFittedLayers';
 import { Mannequin } from '@/ui/mannequin';
 import { placeholderGarmentUri } from '@/ui/mannequin/devGarments';
 import { SegmentedControl } from '@/ui/SegmentedControl';
@@ -69,6 +70,7 @@ export default function DevMannequinScreen() {
     for (const item of items) map[item.images.cutoutId] = placeholderGarmentUri(item);
     return map;
   }, [items]);
+  const fitted = useFittedLayers(items, BODY_A, { imageUris, displayWidth: 300 });
   const selectedItem = items.find((i) => i.id === selected);
 
   return (
@@ -106,6 +108,7 @@ export default function DevMannequinScreen() {
             body={BODY_A}
             items={items}
             imageUris={imageUris}
+            fitted={fitted}
             selectedItemId={selected}
             onSelectItem={setSelected}
             debug={debug === 'on'}

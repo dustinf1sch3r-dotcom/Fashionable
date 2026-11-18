@@ -38,6 +38,8 @@ export const BLOCKING_POSE_PROBLEMS: readonly PoseProblem[] = [
 export interface PoseResult {
   /** In image pixels, `L` = viewer's left. Undefined when no person was found. */
   landmarks?: BodyLandmarks;
+  /** Elbows in image pixels (`L` = viewer's left); only when both were seen (§12.3). */
+  elbows?: { elbowL: Point; elbowR: Point };
   problems: PoseProblem[];
 }
 
@@ -84,6 +86,8 @@ const KP = {
   earRight: 8,
   shoulderLeft: 11,
   shoulderRight: 12,
+  elbowLeft: 13,
+  elbowRight: 14,
   wristLeft: 15,
   wristRight: 16,
   hipLeft: 23,
@@ -192,7 +196,14 @@ export function fromBlazePose(
   if (!feetSeen || !eachFootSeen || lowestFoot > imageHeight) problems.push('feet-missing');
   for (const problem of checkLandmarks(landmarks)) problems.push(problem);
   if ((lowestFoot - headTop.y) / imageHeight < R.minPersonHeight) problems.push('too-small');
-  return { landmarks, problems };
+  // BlazePose 13 is the person's left elbow = the viewer's right.
+  const elbowsSeen = vis(KP.elbowLeft) >= R.minVisibility && vis(KP.elbowRight) >= R.minVisibility;
+  if (!elbowsSeen) return { landmarks, problems };
+  return {
+    landmarks,
+    elbows: { elbowL: pt(KP.elbowRight), elbowR: pt(KP.elbowLeft) },
+    problems,
+  };
 }
 
 /**
@@ -258,6 +269,17 @@ export function toCanvas(landmarks: BodyLandmarks, window: PixelRect): BodyLandm
   const out = {} as BodyLandmarks;
   for (const [key, point] of entries) out[key] = map(point);
   return out;
+}
+
+/** Transform image-pixel elbows into mannequin units for a crop window (same map as `toCanvas`). */
+export function elbowsToCanvas(
+  elbows: { elbowL: Point; elbowR: Point },
+  window: PixelRect,
+): { elbowL: Point; elbowR: Point } {
+  const sx = POSE_RULES.canvasWidth / window.width;
+  const sy = POSE_RULES.canvasHeight / window.height;
+  const map = (q: Point): Point => ({ x: (q.x - window.x) * sx, y: (q.y - window.y) * sy });
+  return { elbowL: map(elbows.elbowL), elbowR: map(elbows.elbowR) };
 }
 
 /** A starting point for manual placement: BODY_A's landmarks (already mannequin units). */

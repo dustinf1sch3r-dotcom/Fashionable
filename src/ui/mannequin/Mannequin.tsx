@@ -1,5 +1,6 @@
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   Image,
   Pressable,
   StyleSheet,
@@ -10,7 +11,9 @@ import {
 import type { BodyTemplate, FitAdjust, ID, Item, Outfit, Placement } from '@/core/model/types';
 import { placeOutfit } from '@/core/tryon/place';
 import { colors, radius } from '@/ui/theme';
+import { effectiveFit } from './fit';
 import { createFitResponder } from './fitResponder';
+import { fittedPlacement, type FittedLayer } from './fitted';
 import { DebugOverlay, Silhouette } from './Silhouette';
 
 /** Mannequin canvas in units (docs/TRY_ON.md §2). */
@@ -50,8 +53,17 @@ interface MannequinProps {
    * instead of the silhouette, and `body` should carry the landmarks that belong to the photo.
    */
   backdrop?: string;
+  /**
+   * Garments already warped to the body (docs/TRY_ON.md §12.5), keyed by item id. Those items are
+   * drawn from the warped image at its own bounds, with the item's `fitAdjust` on top; items
+   * without an entry (not fittable, or still being computed) keep the rigid placement.
+   */
+  fitted?: Readonly<Record<ID, FittedLayer>>;
   testID?: string;
 }
+
+/** How long the warped image takes to fade in over the rigid one. */
+const FADE_MS = 160;
 
 /** The browser must not scroll or zoom the page while a garment is being moved. */
 const NO_BROWSER_GESTURES = { touchAction: 'none', userSelect: 'none' } as unknown as ViewStyle;
@@ -75,6 +87,10 @@ interface LayerProps {
   placement: Placement;
   item: Item;
   uri: string | undefined;
+  /** The warped image; `placement` is then its box rather than the rigid one. */
+  fitted: FittedLayer | undefined;
+  /** The rigid placement, kept underneath while the warped image fades in. */
+  rigid: Placement;
   selected: boolean;
   interactive: boolean;
   debug: boolean;
@@ -95,6 +111,9 @@ function layerPropsEqual(a: LayerProps, b: LayerProps): boolean {
     samePlacement(a.placement, b.placement) &&
     a.item === b.item &&
     a.uri === b.uri &&
+    a.fitted?.uri === b.fitted?.uri &&
+    (a.fitted === undefined) === (b.fitted === undefined) &&
+    samePlacement(a.rigid, b.rigid) &&
     a.selected === b.selected &&
     a.interactive === b.interactive &&
     a.debug === b.debug &&
@@ -107,6 +126,8 @@ const Layer = memo(function Layer({
   placement,
   item,
   uri,
+  fitted,
+  rigid,
   selected,
   interactive,
   debug,
@@ -115,13 +136,29 @@ const Layer = memo(function Layer({
 }: LayerProps) {
   const opaque = !item.cutout.hasAlpha;
   const cornerRadius = opaque ? OPAQUE_RADIUS_UNITS * scale : 0;
-  const box = [
-    placementStyle(placement),
-    { borderRadius: cornerRadius },
-    selected && styles.selected,
-    debug && styles.debugBox,
-  ];
-  const content = uri ? (
+
+  // The first time a warped image appears it fades in over the rigid picture, so the garment does
+  // not jump; afterwards (a new body, edited points) the swap is immediate.
+  const [mountedFitted] = useState(fitted !== undefined);
+  const [fade] = useState(() => new Animated.Value(mountedFitted ? 1 : 0));
+  const [fading, setFading] = useState(false);
+  const shown = useRef(mountedFitted);
+  const hasFitted = fitted !== undefined;
+  useEffect(() => {
+    if (!hasFitted) {
+      shown.current = false;
+      fade.setValue(0);
+      return;
+    }
+    if (shown.current) return;
+    shown.current = true;
+    setFading(true);
+    Animated.timing(fade, { toValue: 1, duration: FADE_MS, useNativeDriver: false }).start(() =>
+      setFading(false),
+    );
+  }, [hasFitted, fade]);
+
+  const rigidContent = uri ? (
     <Image
       source={{ uri }}
       resizeMode="contain"
@@ -138,25 +175,56 @@ const Layer = memo(function Layer({
       ]}
     />
   );
+  const content = fitted ? (
+    <Animated.Image
+      source={{ uri: fitted.uri }}
+      resizeMode="stretch"
+      accessible={false}
+      style={[styles.fill, { opacity: fade }]}
+      testID={`mannequin-fitted-${item.id}`}
+    />
+  ) : (
+    rigidContent
+  );
+
+  const box = [
+    placementStyle(placement),
+    { borderRadius: fitted ? 0 : cornerRadius },
+    selected && styles.selected,
+    debug && styles.debugBox,
+  ];
   const label = item.name ?? 'Garment';
+  // While fading, the rigid picture stays underneath at its own box.
+  const under =
+    fitted && fading ? (
+      <View style={placementStyle(rigid)} pointerEvents="none">
+        {rigidContent}
+      </View>
+    ) : null;
   if (!interactive) {
     return (
-      <View style={box} pointerEvents="none" testID={`mannequin-item-${item.id}`}>
-        {content}
-      </View>
+      <>
+        {under}
+        <View style={box} pointerEvents="none" testID={`mannequin-item-${item.id}`}>
+          {content}
+        </View>
+      </>
     );
   }
   return (
-    <Pressable
-      style={box}
-      onPress={() => onSelect?.(item.id)}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ selected }}
-      testID={`mannequin-item-${item.id}`}
-    >
-      {content}
-    </Pressable>
+    <>
+      {under}
+      <Pressable
+        style={box}
+        onPress={() => onSelect?.(item.id)}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ selected }}
+        testID={`mannequin-item-${item.id}`}
+      >
+        {content}
+      </Pressable>
+    </>
   );
 }, layerPropsEqual);
 
@@ -176,6 +244,7 @@ export function Mannequin({
   debug = false,
   onFitChange,
   backdrop,
+  fitted,
   testID = 'mannequin',
 }: MannequinProps) {
   const [width, setWidth] = useState(0);
@@ -221,10 +290,13 @@ export function Mannequin({
       {placements.map((p) => {
         const item = byId.get(p.itemId);
         if (!item) return null;
+        const layer = fitted?.[item.id];
         return (
           <Layer
             key={p.itemId}
-            placement={p}
+            placement={layer ? fittedPlacement(item.id, layer, effectiveFit(item, drawn), p.z) : p}
+            rigid={p}
+            fitted={layer}
             item={item}
             uri={imageUris[item.images.cutoutId]}
             selected={p.itemId === selectedItemId}

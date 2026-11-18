@@ -38,12 +38,14 @@ export const BODY_A_LANDMARKS = {
 
 interface Garment {
   key: string;
+  /** Fixture PNG in e2e/fixtures/garments (without extension); defaults to `key`. */
+  file?: string;
   name: string;
   category: string;
   subcategory: string;
   hex: string;
   color: string;
-  layer?: 'base';
+  layer?: 'base' | 'mid';
   aspect: number;
 }
 
@@ -97,7 +99,86 @@ const GARMENTS: Garment[] = [
   },
 ];
 
+/** More garments, only seeded when a spec asks for them by key (`SeedOptions.extra`). */
+const EXTRA_GARMENTS: Garment[] = [
+  {
+    key: 'shirt-blue',
+    name: 'Blue shirt',
+    category: 'top',
+    subcategory: 'shirt',
+    layer: 'base',
+    hex: '#5a7fb0',
+    color: 'blue',
+    aspect: 0.839,
+  },
+  {
+    key: 'sweater-blue',
+    file: 'shirt-blue',
+    name: 'Blue sweater',
+    category: 'top',
+    subcategory: 'sweater',
+    layer: 'mid',
+    hex: '#5a7fb0',
+    color: 'blue',
+    aspect: 0.839,
+  },
+  {
+    key: 'jacket-denim',
+    name: 'Denim jacket',
+    category: 'outerwear',
+    subcategory: 'denim-jacket',
+    hex: '#3d5a80',
+    color: 'blue',
+    aspect: 0.917,
+  },
+  {
+    key: 'trousers-grey',
+    name: 'Grey trousers',
+    category: 'bottom',
+    subcategory: 'trousers',
+    hex: '#7a7d82',
+    color: 'grey',
+    aspect: 0.331,
+  },
+  {
+    key: 'skirt-olive',
+    name: 'Olive skirt',
+    category: 'bottom',
+    subcategory: 'skirt',
+    hex: '#6b6b3a',
+    color: 'olive',
+    aspect: 0.825,
+  },
+  {
+    key: 'dress-green',
+    name: 'Green dress',
+    category: 'onepiece',
+    subcategory: 'day-dress',
+    hex: '#3f7d4e',
+    color: 'green',
+    aspect: 0.625,
+  },
+  {
+    key: 'boots-black',
+    name: 'Black boots',
+    category: 'shoes',
+    subcategory: 'chelsea-boots',
+    hex: '#1b1b1d',
+    color: 'black',
+    aspect: 1.1,
+  },
+];
+
+export interface SeedOutfit {
+  id: string;
+  name: string;
+  /** Garment keys, e.g. 'tee-navy'. */
+  keys: string[];
+}
+
 const gid = (key: string) => `seed-${key}`;
+/** Item id of a seeded garment key. */
+export const seedItemId = gid;
 const wrap = (records: object[]) => JSON.stringify({ schemaVersion: 1, records });
 
 function itemRecord(g: Garment, i: number) {
@@ -134,18 +215,40 @@ const outfitRecord = {
   favorite: false,
 };
 
+function extraOutfit(o: SeedOutfit) {
+  return {
+    ...outfitRecord,
+    id: o.id,
+    name: o.name,
+    itemIds: o.keys.map(gid),
+  };
+}
+
 export interface SeedOptions {
   /** Put a body photo (and the profile that points at it) into storage. Default true. */
   bodyPhoto?: boolean;
   tryOnMode?: 'photo' | 'silhouette';
+  /** Keys of extra garments to seed (shirt-blue, sweater-blue, jacket-denim, trousers-grey, …). */
+  extra?: string[];
+  /** Landmarks of the seeded body photo; default `BODY_A_LANDMARKS` (the silhouette's own). */
+  landmarks?: typeof BODY_A_LANDMARKS;
+  /** More saved outfits, besides the default one. */
+  outfits?: SeedOutfit[];
 }
 
 export async function seedTryOn(page: Page, options: SeedOptions = {}): Promise<void> {
-  const { bodyPhoto = true, tryOnMode } = options;
+  const {
+    bodyPhoto = true,
+    tryOnMode,
+    extra = [],
+    outfits = [],
+    landmarks = BODY_A_LANDMARKS,
+  } = options;
+  const garments = [...GARMENTS, ...EXTRA_GARMENTS.filter((g) => extra.includes(g.key))];
   const images = [
-    ...GARMENTS.map((g) => ({
+    ...garments.map((g) => ({
       ids: [`${g.key}-c`, `${g.key}-t`],
-      b64: readFileSync(`e2e/fixtures/garments/${g.key}.png`).toString('base64'),
+      b64: readFileSync(`e2e/fixtures/garments/${g.file ?? g.key}.png`).toString('base64'),
     })),
     ...(bodyPhoto
       ? [{ ids: [BODY_PHOTO_ID], b64: readFileSync(BODY_PHOTO_FIXTURE).toString('base64') }]
@@ -161,8 +264,8 @@ export async function seedTryOn(page: Page, options: SeedOptions = {}): Promise<
       ? {
           bodyPhoto: {
             imageId: BODY_PHOTO_ID,
-            landmarks: BODY_A_LANDMARKS,
-            detected: BODY_A_LANDMARKS,
+            landmarks,
+            detected: landmarks,
             takenAt: '2026-01-01T00:00:00.000Z',
           },
         }
@@ -191,7 +294,12 @@ export async function seedTryOn(page: Page, options: SeedOptions = {}): Promise<
       localStorage.setItem('fashionable/v1/outfits', outfits);
       localStorage.setItem('fashionable/v1/profile', profiles);
     },
-    [images, wrap(GARMENTS.map(itemRecord)), wrap([outfitRecord]), wrap([profile])] as const,
+    [
+      images,
+      wrap(garments.map(itemRecord)),
+      wrap([outfitRecord, ...outfits.map(extraOutfit)]),
+      wrap([profile]),
+    ] as const,
   );
 }
 

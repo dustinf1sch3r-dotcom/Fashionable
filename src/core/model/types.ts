@@ -291,6 +291,8 @@ export interface Profile extends Entity {
     imageId: ID;
     landmarks: BodyLandmarks;
     detected?: BodyLandmarks;
+    /** Elbow points for garment fitting (docs/TRY_ON.md §12.3); absent on older photos. */
+    elbows?: { elbowL: Point; elbowR: Point };
     takenAt?: ISODateTime;
   };
   /** Draw outfits on the body photo or the silhouette (default 'photo' when a photo exists). */

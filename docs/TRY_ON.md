@@ -303,26 +303,64 @@ swapped like the others). They are kept out of `BodyLandmarks` so every core lan
 required; photo elbows are stored as `Profile.bodyPhoto.elbows`, and `BODY_A` gets explicit values.
 Without them, the elbow is the shoulder–wrist midpoint.
 
-Garment lengths keep the garment's own proportions relative to its width, so a cropped tee stays
-cropped and a maxi skirt stays long. Key rules (constants in one `FIT_RULES` table):
+**Physical scaling, then clamping (G3).** Each garment gets one scale `s` = body reference width ÷
+garment reference width, in garment units (x × aspect, y):
 
-- **top:** neck points → either side of `neckBase`; shoulders → shoulder landmarks pushed out by
-  an ease of 6% of shoulder width (mid +10%, outer +16%); armpits → on the torso sides, 22% of the
-  shoulder-to-hip distance below the shoulders; sleeves → along the arm polyline
-  shoulder → elbow → wrist, sleeve length in body units = garment sleeve length ÷ garment shoulder
-  width × body shoulder width; hem → straight down, hem depth likewise from the garment's
-  shoulder-to-hem / shoulder-width ratio.
-- **trousers:** waist → waist landmarks with ease; hips → hip landmarks with ease; crotch → hip
-  midpoint, 12% of hip-to-knee below; each leg follows hip → knee → ankle, length from the garment's
-  outseam / waist-width ratio; hems straddle the leg line with the garment's hem width ratio.
-- **skirt / dress below the waist:** waist and hips as trousers; hem width and length from the
-  garment's own ratios, centred on the body.
+| Piece                                        | Reference width (garment → body)                                             |
+| -------------------------------------------- | ---------------------------------------------------------------------------- |
+| tops and dresses with sleeves                | shoulder width → body shoulder width × (1 + slot ease)                       |
+| sleeveless tops and dresses (no cuff points) | width between the armpit points → chest width = shoulder × 0.85 × (1 + ease) |
+| trousers, skirts (and the skirt of a dress)  | waist width → body waist width × (1 + 4% ease)                               |
+
+Every length is the garment's own length (from the rig, in cutout units) × `s`, measured along the
+body from the piece's start point, and only then clamped to the hem bounds below (`FIT_RULES.target`):
+
+- **sleeve:** |garment shoulder → cuff middle| × `s` along shoulder → elbow → wrist (and on along the
+  forearm), clamped to 25% of the arm up to 102% of it (just past the wrist);
+- **top hem:** body shoulder y + (garment shoulder-to-hem) × `s`; dress hem likewise from the shoulders;
+- **skirt hem:** body waist y + (garment waist-to-hem) × `s`;
+- **trousers:** body waist y + (garment waist-to-hem) × `s`, measured down to the hip and then along
+  hip → knee → ankle.
+
+The garment's own proportions therefore decide the length (a knee-length skirt of knee proportions
+reaches the knee, a maxi the ankle) and the bounds only stop absurd results (a flat-lay photographed
+long for its width must not leave a tee at the knee). Shorts and long trousers are still told apart by
+the rig alone (outseam ÷ waist width above `shortsMaxRatio` 1.5 is long), because core does not see
+the taxonomy.
+
+| Piece                | Hem bounds (body)                                                      |
+| -------------------- | ---------------------------------------------------------------------- |
+| top, base and mid    | waist → hip + 15% of hip-to-knee (was 25%: tops end at the hip)        |
+| outerwear            | hip → 60% of knee-to-ankle below the knee                              |
+| shorts (ratio < 1.5) | hip + 30% of hip-to-knee → knee                                        |
+| long trousers        | ankle ± 2% of the hip-to-ankle distance (was 3%), never below the feet |
+| skirts and dresses   | hip + 35% of hip-to-knee → ankle                                       |
+| sleeves              | 25% of the arm → 102% of the arm (was 104%)                            |
+
+Cuff width (outer ↔ inner at the target) is the garment's cuff width × `s` clamped to
+18–32% of the body shoulder width (outerwear 36%); the sleeve centre line stays on the arm polyline
+and armpits stay on the torso sides. Neck separation keeps the garment's neck ÷ shoulder ratio,
+clamped to 25–60% of the body shoulder width. On sleeveless garments the shoulder targets are the
+straps at the garment's own scale (garment shoulder width × `s`, centred), not the shoulder tips.
+Other rules: shoulder ease is a _total_ extra width (half on each side); trouser hips are detected
+70% of the way from waist to crotch; armpit x on tops comes from the body outline at the armpit
+height; armpits sit 22% of shoulder-to-hip below the shoulders; the crotch is 12% of hip-to-knee
+below the hips; each leg follows hip → knee → ankle with the hem width the garment's own × `s`.
+
+**Layering.** `nestInside(inner, outer, body)` takes `rigTargets` of two top rigs on the same body.
+Inner shoulders and armpits stay 3% of the shoulder width inside the outer's; inner cuffs are at
+least 4% of the shoulder width narrower than the outer cuff and, when the outer sleeve is long
+(its cuff past the elbow), end 2% of the arm length short of it, on the outer sleeve's line;
+sleeves already inside are untouched. Hems are not clamped. Call order: compute the outermost
+layer's targets first, then `nestInside(mid, outer)`, then `nestInside(base, nestedMid)`; build
+each mesh from its own nested targets.
 
 ### 12.4 Warping (`src/core/fit/mls.ts`, pure)
 
 Moving Least Squares image deformation (similarity variant; Schaefer, McPhail & Warren, 2006)
 with the rig points as handles, evaluated on a grid mesh over the cutout (default 24 × 48 cells,
-plus extra handles along garment edges to stop bulging). Output: a mesh of source/target vertices
+plus extra handles along garment edges to stop bulging). Every cell of the grid is kept (culling
+by the coarse rig outline cut real edges); transparent pixels draw nothing. Output: a mesh of source/target vertices
 and triangles in mannequin units. Pure and deterministic.
 
 ### 12.5 Rendering
@@ -339,3 +377,67 @@ interface.
 
 Item detail → "Garment points": the cutout with draggable rig points (same handle and loupe
 component as §11.4), a live preview on the current body, and Reset to detected.
+
+### 12.7 Decisions (G2)
+
+- **Renderer** (`src/services/fit/warper.web.ts`): canvas 2D, per triangle clip + affine
+  `drawImage` (the triangle grown by half a pixel to hide seams; only the triangle's part of the
+  texture is drawn). The cutout is shrunk in halving steps first when it is much larger than the
+  output, so edges do not alias. Output is 0.5, 0.75 or 1 pixel per mannequin unit, chosen from the
+  mannequin's display width and the device pixel ratio (`fitDensity`). Native and Jest report
+  `available: false`.
+- **Cache** (`src/features/shared/fit`): key = item id + cutout image id + rig signature (kind,
+  version, edited flag, points) + body signature (all landmarks and elbows) + slot + density. An
+  in-memory LRU of 60 images; evicted object URLs are revoked through `GarmentWarper.release`.
+  Identical requests share one render and at most two renders run at once. Nothing is persisted:
+  a render of a 24 x 48 mesh is fast enough to redo on load.
+- **Drawing**: while an exact image is being rendered the item shows the newest image it already
+  has for another body, else the rigid picture; the first fitted image fades in over the rigid one
+  (160 ms) so nothing jumps. `fitAdjust` is applied on top of the fitted bounds (scale about the
+  top centre, then nudge and rotate), exactly as for rigid placement, and does not trigger a new
+  render. Only tops, bottoms, one-pieces and outerwear are fitted; the Insights art stays rigid.
+- **Rig lifecycle**: detected from the cutout's alpha (256 px long side) when an item is added, and
+  again after a re-cut or touch-up. A new outline invalidates hand-set points, so they are replaced
+  and the item screen says so. Existing items, items re-tagged to another rig kind, and items with
+  an older rule-set version get a rig the first time they are drawn; it is saved back to the closet
+  after a short pause. A cutout the detector cannot read is tried once per session.
+- **Garment points editor** (item detail, "Garment points", highlighted as "Check garment points"
+  when detection confidence is below `FIT_MIN_CONFIDENCE` and the points were never edited):
+  full-screen overlay with the cutout and a draggable dot per point (44 pt touch area, magnifier
+  while dragging, same look as the body landmark handles), a live preview on the current body, "Reset
+  to detected" and "Save". Saving stores the rig with `edited: true`. Only shown where the renderer
+  is available.
+
+### 12.7 Detection decisions (G1)
+
+Detection works on a cleaned grid of at most 128 cells (stray specks, pinholes removed) after the
+tilt is undone (bounding-box search for tops and dresses, top-edge slope for bottoms). Three
+tunable choices, all in `FIT_RULES`: sleeve cuff corners come from the pixels farthest along the
+sleeve axis (`cuffSlab`); the armpit is the apex of the sleeve–torso gap, or the lowest point of the
+sleeve underside when there is no gap; the crotch apex is extrapolated from how the leg gap opens
+(`apexFill`, `apexBack`). Confidence is the cleanliness of the mask, reduced by left/right
+asymmetry and structural failures (no collar dip, bad order or proportions). Trousers/jumpsuits
+need a leg gap and skirts must not have one, otherwise `detectRig` returns undefined.
+
+### 12.8 Decisions (G3, fit tuning)
+
+- **Length rule** replaced the old "garment ratio picks a point inside the range" mapping (§12.3).
+  It made every long-for-its-width garment a maxi. Tests: `src/core/fit/targets.test.ts` (physical
+  scaling) and `src/core/fit/fixtures.test.ts` (the real PNG fixtures; decoder in
+  `fixtureGarments.ts`, Node `zlib`, test-only).
+- **Bounds changed** (clearly too loose once lengths are physical): base/mid hem 25% → 15% below the
+  hip (a tee is a tee, not a tunic), long-trouser tolerance 3% → 2% and sleeve maximum 104% → 102%
+  so results stay inside the 3% / 4% tolerances the owner reviews against.
+- **Detection: sleeves that reach the bottom row.** A coat whose sleeves are longer than its body
+  has no jump back to the torso below the cuff, so no sleeve was found (no cuffs, armpits on the
+  sleeve edge, hem on the sleeve ends) and the coat was fitted as a sleeveless top. Now a slit
+  between sleeve and torso that spans at least `openSleeveSlit` (20%) of the height and is open at
+  the bottom marks a sleeve ending at the last row, and the hem is clipped to the torso's edges.
+  A slit that stays narrow (under `apexMinGap` cells, or opening slower than `apexMinSlope`) is not
+  extrapolated upwards: its first row is the armpit (the right armpit of the coat was 20% too high).
+- `node scripts/fit-gallery.mjs <out> --debug-rigs` writes `rig-<name>.png`: each fitted garment
+  with the rig points the app detected (read back from the closet) drawn and labelled.
+- **Fixture proportions.** By their own proportions the olive skirt (360 px long, 138 px at the
+  waist: 2.6 waist widths) is a midi and the green dress (360 px long, 75 px between the straps) a
+  maxi on this body. The rigid placement (§5) hides this by scaling to the hem width. They are
+  tested as such; regenerate the fixtures if a knee-length skirt is wanted in the gallery.

@@ -23,6 +23,7 @@ import { WoreTodayButton } from '../calendar/WoreTodayButton';
 import { subcategoryLabel } from '../closet/labels';
 import { itemDisplayName } from '../closet/list/filter';
 import { useClosetHydration } from '../closet/list/useClosetHydration';
+import { useFittedLayers } from '../shared/fit/useFittedLayers';
 import { useBody } from '../shared/useBody';
 import { useImageUris } from '../shared/useImageUris';
 import { OCCASION_LABELS } from './missingSlots';
@@ -177,6 +178,10 @@ function DetailBody({
   const byId = useMemo(() => new Map(allItems.map((i) => [i.id, i])), [allItems]);
   const resolved = resolveOutfitItems(outfit.itemIds, byId);
   const imageUris = useImageUris(resolved.items.map((i) => i.images.cutoutId));
+  const fitted = useFittedLayers(resolved.items, body, {
+    imageUris,
+    displayWidth: MANNEQUIN_WIDTH,
+  });
   const name = outfitName(outfit, resolved.items);
   const note = outfitNote(resolved);
   const occasion =
@@ -210,6 +215,7 @@ function DetailBody({
             items={resolved.items}
             outfit={outfit}
             imageUris={imageUris}
+            fitted={fitted}
             interactive={false}
             testID="outfit-detail-mannequin"
           />
