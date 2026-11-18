@@ -1,4 +1,4 @@
-import { useReducer, useState } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { CATEGORIES, subcategoriesOf } from '@/core/model/taxonomy';
@@ -11,6 +11,7 @@ import { SectionHeader } from '@/ui/SectionHeader';
 import { TextField } from '@/ui/TextField';
 import { colors, radius, spacing, typography } from '@/ui/theme';
 import { CATEGORY_LABELS, COLOR_LABELS, PATTERN_LABELS, subcategoryLabel } from '../labels';
+import { captureHintFor } from './captureHints';
 import { ColorPicker } from './ColorPicker';
 import { PhotoPreview } from './PhotoPreview';
 import { formReducer, initialFormState, validateForm, type FormState } from './formState';
@@ -56,6 +57,21 @@ export function TagForm({
   const [pickingColour, setPickingColour] = useState(noColour);
   const problems = validateForm(state);
   const primary = state.colors[0];
+  // Advice about how the garment was photographed; only about a cutout that is being used. The
+  // check takes a few dozen milliseconds, so it runs after the form has been painted.
+  const [captureHint, setCaptureHint] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const timer = setTimeout(
+      () =>
+        setCaptureHint(
+          useOriginal || !photo.cutout
+            ? undefined
+            : captureHintFor(photo.cutoutMask, state.category, state.subcategory),
+        ),
+      0,
+    );
+    return () => clearTimeout(timer);
+  }, [useOriginal, photo.cutout, photo.cutoutMask, state.category, state.subcategory]);
 
   const flags = [
     ...(state.rainOk ? (['rainOk'] as const) : []),
@@ -69,6 +85,11 @@ export function TagForm({
           <Text style={styles.rejected} accessibilityRole="alert" testID="add-item-cutout-hint">
             Couldn’t separate the background — try a plainer background, or use Touch up to erase it
             by hand.
+          </Text>
+        ) : null}
+        {captureHint ? (
+          <Text style={styles.rejected} accessibilityRole="alert" testID="add-item-capture-hint">
+            {captureHint}
           </Text>
         ) : null}
         <View style={styles.previewRow}>

@@ -1,4 +1,5 @@
 import type { GarmentRig, Point, RigKind } from '../model/types';
+import { hemShadow, fillDip, softenEdges, wobbleEdges } from '../testing/maskEffects';
 import { garmentMask, type GarmentMask, type GarmentName } from '../testing/garmentMasks';
 import { FIT_MIN_CONFIDENCE, RIG_VERSION } from './contract';
 import { detectRig } from './detect';
@@ -246,5 +247,116 @@ describe('detectRig on the wrong kind or no garment', () => {
     const wrong = run('jeans', 'top') as GarmentRig;
     expect(clean.confidence).toBeGreaterThan(noisy.confidence);
     expect(noisy.confidence).toBeGreaterThan(wrong.confidence);
+  });
+});
+
+describe('detectRig on real-photo artefacts', () => {
+  const WHOLE = NAMES;
+  /** Dresses and jumpsuits have more outline to go wrong; they get the milder artefacts only. */
+  const SIMPLE = NAMES.filter((n) => !/dress|jumpsuit/i.test(n));
+
+  // The jumpsuit has the most outline to lose (neck, sleeves, waist and two legs) and is left out of
+  // the bumpy cases; the milder artefacts below include it.
+  it.each(WHOLE.filter((n) => n !== 'jumpsuit'))(
+    '%s: a wrinkled, bumpy outline (0.6%) stays close and confident',
+    (name) => {
+      for (const rotate of SIMPLE.includes(name) ? [0, 5, -7] : [0, 5]) {
+        const g = garmentMask(name, { height: 400, rotate });
+        const rig = detectRig(wobbleEdges(g.mask, 0.006, 1), KIND[name]);
+        expectClose(name, rig, g, 0.08);
+        expect(rig?.confidence).toBeGreaterThan(FIT_MIN_CONFIDENCE);
+      }
+    },
+  );
+
+  it.each(SIMPLE)('%s: a very bumpy outline (1.2%) still finds the points', (name) => {
+    for (const rotate of [0, -7]) {
+      const g = garmentMask(name, { height: 400, rotate });
+      const rig = detectRig(wobbleEdges(g.mask, 0.012, 2), KIND[name]);
+      expectClose(name, rig, g, 0.1);
+      expect(rig?.confidence).toBeGreaterThan(FIT_MIN_CONFIDENCE);
+    }
+  });
+
+  it.each(WHOLE)('%s: a soft, anti-aliased alpha edge stays close and confident', (name) => {
+    for (const rotate of SIMPLE.includes(name) ? [0, 5, -7] : [0, 5]) {
+      const g = garmentMask(name, { height: 400, rotate });
+      const rig = detectRig(softenEdges(g.mask, 2), KIND[name]);
+      expectClose(name, rig, g, 0.08);
+      expect(rig?.confidence).toBeGreaterThan(FIT_MIN_CONFIDENCE);
+    }
+  });
+
+  it.each(SIMPLE)('%s: tilted 8 degrees with a bumpy, soft outline', (name) => {
+    for (const rotate of [8, -8]) {
+      const g = garmentMask(name, { height: 400, rotate });
+      const rig = detectRig(softenEdges(wobbleEdges(g.mask, 0.006, 3), 1), KIND[name]);
+      expectClose(name, rig, g, 0.1);
+      expect(rig?.confidence).toBeGreaterThan(FIT_MIN_CONFIDENCE);
+    }
+  });
+
+  it.each(['tee', 'longSleeve', 'coat', 'jeans', 'aLineSkirt'] as GarmentName[])(
+    '%s: a shadow under the hem moves the hem points by the shadow at most',
+    (name) => {
+      const g = garmentMask(name, { height: 400 });
+      const shadowed = hemShadow(g.mask, 6);
+      const rig = detectRig(shadowed, KIND[name]) as GarmentRig;
+      expect(rig.confidence).toBeGreaterThan(FIT_MIN_CONFIDENCE);
+      const hem = (rig.points.hemL ?? rig.points.hemOuterL) as Point;
+      const truth = (g.truth.hemL ?? g.truth.hemOuterL) as Point;
+      // Compare in pixels of the original height: the shadow is 6 px of a 400+ px garment.
+      expect(Math.abs(hem.y * shadowed.height - truth.y * g.mask.height)).toBeLessThan(0.05 * 400);
+    },
+  );
+
+  it('a hanger filling the neck dip leaves a sleeved top fittable, but not a skirt read as a top', () => {
+    const tee = garmentMask('tee', { height: 400 });
+    const filled = detectRig(fillDip(tee.mask, 40), 'top') as GarmentRig;
+    expect(filled.confidence).toBeGreaterThan(FIT_MIN_CONFIDENCE);
+    // The neck falls back to the middle of the top edge, inside the shoulders.
+    const p = filled.points;
+    expect((p.neckL as Point).x).toBeGreaterThan((p.shoulderL as Point).x);
+    expect((p.neckR as Point).x).toBeLessThan((p.shoulderR as Point).x);
+    const sleeveless = detectRig(
+      fillDip(garmentMask('sleevelessTop', { height: 400 }).mask, 40),
+      'top',
+    );
+    if (sleeveless) expect(sleeveless.confidence).toBeLessThan(FIT_MIN_CONFIDENCE);
+    for (const name of ['jeans', 'aLineSkirt', 'pencilSkirt', 'shorts'] as GarmentName[]) {
+      const wrong = detectRig(garmentMask(name).mask, 'top');
+      if (wrong) expect(wrong.confidence).toBeLessThan(FIT_MIN_CONFIDENCE);
+    }
+  });
+
+  it('finds a short sleeve whose underside is a slant with no step, as on a photographed tee', () => {
+    // Design units of a 100-wide tee, drawn at 3 px a unit: shoulder slope out to the sleeve tip,
+    // the underside running diagonally back in to the torso, a straight torso, a neck dip.
+    const K = 3;
+    const W = 100 * K;
+    const H = 150 * K;
+    const alpha = new Uint8Array(W * H);
+    const left = (u: number): number =>
+      u < 5 ? 40 : u < 30 ? 40 - (36 * (u - 5)) / 25 : u < 52 ? 4 + (24 * (u - 30)) / 22 : 28;
+    for (let y = 0; y < H; y++) {
+      const u = y / K;
+      if (u < 5 || u > 140) continue;
+      for (let x = 0; x < W; x++) {
+        const v = x / K;
+        const mirrored = 100 - v;
+        const inside = Math.min(v, mirrored) >= left(u);
+        const dip = u < 12 && v > 42 && v < 58 && u < 12 - (v - 50) ** 2 / 8;
+        if (inside && !dip) alpha[y * W + x] = 255;
+      }
+    }
+    const rig = detectRig({ width: W, height: H, alpha }, 'top') as GarmentRig;
+    expect(rig.confidence).toBeGreaterThan(FIT_MIN_CONFIDENCE);
+    for (const side of ['L', 'R']) {
+      expect(rig.points[`cuffOuter${side}`]).toBeDefined();
+    }
+    const armpit = rig.points.armpitL as Point;
+    expect(armpit.x).toBeCloseTo(0.28, 1);
+    expect(armpit.y * 150).toBeGreaterThan(40);
+    expect(armpit.y * 150).toBeLessThan(60);
   });
 });

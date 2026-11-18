@@ -59,11 +59,20 @@ interface MannequinProps {
    * without an entry (not fittable, or still being computed) keep the rigid placement.
    */
   fitted?: Readonly<Record<ID, FittedLayer>>;
+  /**
+   * The whole outfit merged into one picture (docs/TRY_ON.md §13), covering the canvas: backdrop
+   * and garments in one. It fades in over the layered drawing, which stays underneath (so taps
+   * still reach the garments, and nothing reloads when it goes away). While a garment is selected
+   * (fit editing) the layered drawing is shown instead.
+   */
+  merged?: string;
   testID?: string;
 }
 
 /** How long the warped image takes to fade in over the rigid one. */
 const FADE_MS = 160;
+/** How long the merged picture takes to fade in over the layered drawing. */
+const MERGED_FADE_MS = 220;
 
 /** The browser must not scroll or zoom the page while a garment is being moved. */
 const NO_BROWSER_GESTURES = { touchAction: 'none', userSelect: 'none' } as unknown as ViewStyle;
@@ -228,6 +237,32 @@ const Layer = memo(function Layer({
   );
 }, layerPropsEqual);
 
+interface MergedImageProps {
+  uri: string;
+  testID: string;
+}
+
+/** The merged picture: invisible until decoded, then a short fade over the layered drawing. */
+function MergedImage({ uri, testID }: MergedImageProps) {
+  const [fade] = useState(() => new Animated.Value(0));
+  const [loaded, setLoaded] = useState<string | undefined>();
+  useEffect(() => {
+    if (loaded !== uri) return;
+    Animated.timing(fade, { toValue: 1, duration: MERGED_FADE_MS, useNativeDriver: false }).start();
+  }, [loaded, uri, fade]);
+  return (
+    <Animated.Image
+      source={{ uri }}
+      resizeMode="stretch"
+      accessible={false}
+      onLoad={() => setLoaded(uri)}
+      style={[styles.merged, { opacity: fade }]}
+      pointerEvents="none"
+      testID={testID}
+    />
+  );
+}
+
 /**
  * Paper-doll try-on (docs/TRY_ON.md §9): a 1:2 container that scales to its parent's width, the
  * body silhouette at the bottom and one absolutely positioned image per placement, in z order.
@@ -245,6 +280,7 @@ export function Mannequin({
   onFitChange,
   backdrop,
   fitted,
+  merged,
   testID = 'mannequin',
 }: MannequinProps) {
   const [width, setWidth] = useState(0);
@@ -260,6 +296,8 @@ export function Mannequin({
   const scale = width > 0 ? width / UNITS_W : 0.4;
   const selectedItem = selectedItemId ? byId.get(selectedItemId) : undefined;
   const fitEditing = tappable && onFitChange !== undefined && selectedItem !== undefined;
+  // A selected garment is being edited: its outline and live movement are only in the layers.
+  const showMerged = merged !== undefined && !(tappable && selectedItem !== undefined);
 
   // The responder is created once and told the latest values after every commit.
   const [session] = useState(() => createFitResponder(setLive));
@@ -307,6 +345,7 @@ export function Mannequin({
           />
         );
       })}
+      {showMerged ? <MergedImage key={merged} uri={merged} testID={`${testID}-merged`} /> : null}
       {debug ? (
         <View style={[styles.fill, styles.overlay]} pointerEvents="none">
           <DebugOverlay body={body} testID={`${testID}-debug`} />
@@ -334,6 +373,8 @@ const styles = StyleSheet.create({
   root: { width: '100%', aspectRatio: UNITS_W / UNITS_H, overflow: 'visible' },
   fill: { width: '100%', height: '100%' },
   overlay: { position: 'absolute', left: 0, top: 0, zIndex: 1000 },
+  // Above every garment (z is at most a few hundred), below the debug overlay.
+  merged: { position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', zIndex: 900 },
   opaque: { opacity: OPAQUE_OPACITY },
   pending: { opacity: 0.35, borderRadius: radius.sm },
   selected: { borderWidth: SELECTION_WIDTH, borderColor: colors.accent },

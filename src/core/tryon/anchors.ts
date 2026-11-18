@@ -20,7 +20,9 @@ export const ANCHOR_RULES = {
   legs: { z: 10, topOffset: 0, widthMul: 1.0 }, // knee.y, H
   // Foot gap + about one foot width: a pair drawn side by side covers both feet without spilling.
   // z 35: drawn over trouser hems (they otherwise hide the shoes entirely), under tops and dresses.
-  shoes: { z: 35, topOffset: -30, widthMul: 1, widthAdd: 120 }, // ankle.y, foot gap + 120
+  // The pair is one picture, so a wide stance or a stride must not blow the shoes up: never wider
+  // than the hips (BODY_A's pair is exactly that wide).
+  shoes: { z: 35, topOffset: -30, widthMul: 1, widthAdd: 120, maxOverHip: 1 }, // ankle.y, foot gap + 120, at most H
   bottom: { z: 30, topOffset: -20, widthMul: 1.25 }, // waist.y, H
   base: { z: 40, topOffset: -10, widthMul: 1.55 }, // neckBase.y, S
   onepiece: { z: 40, topOffset: -10, widthMul: 1.55 }, // neckBase.y, S
@@ -75,7 +77,7 @@ function anchorFromLandmarks(slot: Slot, l: BodyLandmarks): Anchor {
       return {
         centerX: cx,
         topY: avg(l.ankleL.y, l.ankleR.y) + R.shoes.topOffset,
-        width: gap * R.shoes.widthMul + R.shoes.widthAdd,
+        width: Math.min(gap * R.shoes.widthMul + R.shoes.widthAdd, H * R.shoes.maxOverHip),
         z: R.shoes.z,
       };
     }

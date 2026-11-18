@@ -64,6 +64,7 @@ exports[`anchors ANCHOR_RULES snapshot 1`] = `
     "z": 60,
   },
   "shoes": {
+    "maxOverHip": 1,
     "topOffset": -30,
     "widthAdd": 120,
     "widthMul": 1,

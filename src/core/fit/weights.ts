@@ -29,6 +29,19 @@ export const FIT_RULES = {
     sleeveReach: 0.08,
     /** Sleeve: a jump of the left edge of at least this (× width) marks the cuff bottom. */
     cuffJump: 0.04,
+    /** A slanted cuff edge: the edge moves in monotonically by this many jumps over `cuffWindow` rows, and on while it moves at least `cuffSlantStep` cells a row. */
+    cuffWindow: 4,
+    cuffSlant: 1.2,
+    cuffSlantStep: 0.5,
+    /** … on average at least this many cells a row (a sleeve's underside is steep; a waist is not). */
+    cuffSlope: 0.9,
+    /** … and a slant counts as a sleeve only when it ends at least this far (× width) inside the outermost point. */
+    cuffSlantReach: 0.12,
+    /** Below a slant the torso must stay put: over this fraction of the height the edge may drift (either way) by at most `cuffDrift` cells a row. */
+    cuffPlateau: 0.1,
+    cuffDrift: 0.2,
+    /** Leaps of the cuff edge at most this many rows apart form one chain; its last leap is the cuff bottom. */
+    cuffChainRows: 3,
     /** Sleeve end: points within this fraction of the upper height of the farthest form the end. */
     cuffSlab: 0.025,
     /** A cuff jump needs at least this fraction of the height of body rows below it. */
@@ -43,6 +56,12 @@ export const FIT_RULES = {
     waistBand: [0.25, 0.6],
     /** A row counts as the full edge when at least this wide compared with the widest nearby. */
     edgeFill: 0.9,
+    /** Hem: the reference width is the median over rows this fraction of the height above the bottom. */
+    hemRefFrom: 0.1,
+    hemRefTo: 0.35,
+    /** Hem: the first row (searched up from the bottom within this fraction) at least this wide is the hem. */
+    hemSearch: 0.12,
+    hemFill: 0.9,
     /** Edge rows are looked for within this many rows. */
     edgeBand: 4,
     /** Sleeve/leg gaps: the apex is extrapolated from rows narrower than this fraction of the widest. */
@@ -55,6 +74,10 @@ export const FIT_RULES = {
     apexBack: 0.2,
     /** A slit between an open-ended sleeve and the torso spans at least this fraction of the height. */
     openSleeveSlit: 0.2,
+    /** A sleeve whose underside is flat: its armpit is looked for this many columns left of the torso edge. */
+    undersideCols: 3,
+    /** A flat sleeve underside: the armpit is the column nearest the torso within this fraction of the upper height of the highest. */
+    armpitTie: 0.03,
     /** A sleeve gap may be bridged by noise for this many rows. */
     gapMisses: 2,
     /** A sleeve gap lies at least this fraction of the width left of the centre (not the collar). */
@@ -80,6 +103,8 @@ export const FIT_RULES = {
     maxNoisePenalty: 0.3,
     /** Multipliers for structural problems. */
     noNeck: 0.45,
+    /** No visible neck dip, but sleeves were found: the dip is often filled (a hanger, a collar). */
+    noNeckSleeved: 0.8,
     badOrder: 0.25,
     badRatio: 0.5,
     notKind: 0.4,

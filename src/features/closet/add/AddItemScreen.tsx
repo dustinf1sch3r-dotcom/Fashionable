@@ -18,6 +18,7 @@ import { toNewItemInit, validateForm, type FormState } from './formState';
 import {
   cutOutPhoto,
   processPhoto,
+  readCutoutMask,
   saveProcessedPhoto,
   type PickedPhoto,
   type ProcessedPhoto,
@@ -72,6 +73,14 @@ export function AddItemScreen() {
     );
     setUseOriginal(false);
     setTouchingUp(false);
+    // The touched-up cutout may no longer be cut off, or may have lost the extra pieces.
+    void readCutoutMask(getServices().pixels, result.thumb.uri).then((cutoutMask) =>
+      setStep((s) =>
+        s.kind === 'form' && s.photo.cutout?.thumb.uri === result.thumb.uri
+          ? { ...s, photo: { ...s.photo, cutoutMask } }
+          : s,
+      ),
+    );
   };
 
   // Go back to the closet that opened this screen; after a direct page load there is no history.

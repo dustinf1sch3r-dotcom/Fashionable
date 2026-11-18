@@ -3,6 +3,7 @@ import { Image, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-nat
 import Svg, { Line } from 'react-native-svg';
 import type { BodyLandmarks, ID, Item, Point } from '@/core/model/types';
 import { Mannequin } from '@/ui/mannequin';
+import { useComposite } from '../shared/composite/useComposite';
 import { useFittedLayers } from '../shared/fit/useFittedLayers';
 import { colors, radius, spacing, typography } from '@/ui/theme';
 import { LandmarkHandle } from './LandmarkHandle';
@@ -60,6 +61,15 @@ export function LandmarkEditor({ uri, landmarks, onChange, preview, sample }: La
     displayWidth: width || 300,
     enabled: preview,
   });
+  const composite = useComposite({
+    items: sample.items,
+    body: previewBody,
+    backdrop: uri,
+    imageUris: sample.imageUris,
+    fitted,
+    displayWidth: width || 300,
+    enabled: preview,
+  });
 
   const toPx = (p: Point): Point => ({ x: unitsToPx(p.x, width), y: unitsToPx(p.y, width) });
   const active = dragging ? toPx(landmarks[dragging]) : null;
@@ -78,6 +88,7 @@ export function LandmarkEditor({ uri, landmarks, onChange, preview, sample }: La
           items={sample.items}
           imageUris={sample.imageUris}
           fitted={fitted}
+          {...(composite.uri ? { merged: composite.uri } : {})}
           interactive={false}
           testID="me-preview-mannequin"
         />

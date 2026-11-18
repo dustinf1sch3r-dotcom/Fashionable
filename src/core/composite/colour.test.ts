@@ -1,3 +1,4 @@
+import { COMPOSITE_RULES } from './rules';
 import { applyGains, colourGains } from './colour';
 
 const apply = (rgb: [number, number, number], gains: [number, number, number]): number[] => {
@@ -25,10 +26,11 @@ describe('colour matching', () => {
   });
 
   it('exposure moves only part-way and is bounded', () => {
-    const half = colourGains({ cast: [1, 1, 1], exposure: 0.32 })[0];
-    expect(half).toBeCloseTo(Math.sqrt(0.64), 5); // strength 0.5
-    expect(colourGains({ cast: [1, 1, 1], exposure: 0.01 })[0]).toBeCloseTo(0.8, 5);
-    expect(colourGains({ cast: [1, 1, 1], exposure: 1 })[0]).toBeCloseTo(1.1, 5);
+    const half = colourGains({ cast: [1, 1, 1], exposure: 0.41 })[0];
+    expect(half).toBeCloseTo(Math.sqrt(0.82), 5); // strength 0.5, inside the bounds
+    const { exposureGainMin, exposureGainMax } = COMPOSITE_RULES.colour;
+    expect(colourGains({ cast: [1, 1, 1], exposure: 0.01 })[0]).toBeCloseTo(exposureGainMin, 5);
+    expect(colourGains({ cast: [1, 1, 1], exposure: 1 })[0]).toBeCloseTo(exposureGainMax, 5);
   });
 
   it('lightness scales: a dark garment stays dark, colour ratios are kept without a cast', () => {

@@ -8,6 +8,7 @@ import { Mannequin } from '@/ui/mannequin';
 import { colors, iconSize, radius, spacing, typography } from '@/ui/theme';
 import { WoreTodayButton } from '../calendar/WoreTodayButton';
 import { itemDisplayName } from '../closet/list/filter';
+import { useComposite } from '../shared/composite/useComposite';
 import { useFittedLayers } from '../shared/fit/useFittedLayers';
 import { ItemThumb } from './ItemThumb';
 import { topReasons } from './reasonText';
@@ -55,6 +56,15 @@ export function SuggestionCard({
   onOpenSaved,
 }: SuggestionCardProps) {
   const fitted = useFittedLayers(items, body, { imageUris, displayWidth: MANNEQUIN_WIDTH });
+  const composite = useComposite({
+    items,
+    body,
+    ...(backdrop ? { backdrop } : {}),
+    imageUris,
+    fitted,
+    displayWidth: MANNEQUIN_WIDTH,
+    background: colors.surface,
+  });
   const names = new Map(items.map((i) => [i.id, itemDisplayName(i)]));
   const reasons = topReasons(suggestion.reasons, { itemName: (id) => names.get(id) });
   const label = scoreLabel(suggestion.score);
@@ -69,6 +79,7 @@ export function SuggestionCard({
             items={items}
             imageUris={imageUris}
             fitted={fitted}
+            {...(composite.uri ? { merged: composite.uri } : {})}
             interactive={false}
             testID={`outfit-mannequin-${index}`}
           />

@@ -10,6 +10,7 @@ import { rigFor, useFittedLayers } from './useFittedLayers';
 
 jest.mock('@/core/fit', () => ({
   RIG_VERSION: 1,
+  FIT_MIN_CONFIDENCE: 0.6,
   // Layering is tested in core (src/core/fit/layers.test.ts); here every garment is unnested.
   layeredTargets: (inputs: { itemId: string }[]) =>
     Object.fromEntries(inputs.map((l) => [l.itemId, { targets: {}, nestedIn: [] }])),
@@ -149,6 +150,44 @@ describe('useFittedLayers', () => {
     );
     await waitFor(() => expect(result.current['tee-white']).toBeDefined());
     expect(detector.ensure).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a low-confidence rig rigid: nothing is rendered and the detector is not asked again', async () => {
+    const { engine, detector, render } = setup();
+    const unsure = withRig(fixtureById('tee-white'), rig({ confidence: 0.12 }));
+    const { result } = await renderHook(() =>
+      useFittedLayers([unsure, jeans], BODY_A, { imageUris: uris, engine, detector }),
+    );
+    await waitFor(() => expect(result.current['jeans-dark']).toBeDefined());
+    expect(result.current['tee-white']).toBeUndefined();
+    expect(render).toHaveBeenCalledTimes(1);
+    expect(detector.ensure).not.toHaveBeenCalled();
+  });
+
+  it('fits a rig exactly at the confidence threshold, and a low one the user edited', async () => {
+    const { engine, detector } = setup();
+    const atLimit = withRig(fixtureById('tee-white'), rig({ confidence: 0.6 }));
+    const edited = withRig(
+      fixtureById('jeans-dark'),
+      rig({ kind: 'trousers', confidence: 0.05, edited: true }),
+    );
+    const { result } = await renderHook(() =>
+      useFittedLayers([atLimit, edited], BODY_A, { imageUris: uris, engine, detector }),
+    );
+    await waitFor(() =>
+      expect(Object.keys(result.current).sort()).toEqual(['jeans-dark', 'tee-white']),
+    );
+  });
+
+  it('keeps a session-detected low-confidence rig rigid too', async () => {
+    const { engine, detector, render } = setup();
+    detector.peek = () => rig({ confidence: 0.2 });
+    const bare = fixtureById('tee-white');
+    const { result } = await renderHook(() =>
+      useFittedLayers([bare], BODY_A, { imageUris: uris, engine, detector }),
+    );
+    expect(result.current).toEqual({});
+    expect(render).not.toHaveBeenCalled();
   });
 
   it('never tries to fit an item that is only a photo', async () => {

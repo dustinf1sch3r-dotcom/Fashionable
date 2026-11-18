@@ -6,7 +6,7 @@ export const COMPOSITE_RULES = {
     nearWhite: 235,
     maxSaturation: 0.6,
     /** Per-channel illuminant gain is clamped to 1 ± this. */
-    castClamp: 0.15,
+    castClamp: 0.08,
     /** Pixels with alpha below this are not part of the photo. */
     minAlpha: 128,
     /** Statistics look at roughly this many pixels at most (strided). */
@@ -19,24 +19,26 @@ export const COMPOSITE_RULES = {
   },
   colour: {
     /** How much of the illuminant cast (exponent on the gain) reaches the garment. */
-    castStrength: 0.75,
+    castStrength: 0.4,
     /** Fraction of the exposure difference applied (exponent on the exposure ratio). */
     exposureStrength: 0.5,
     /** Photo median luminance (0..1) that leaves the garment unchanged. */
     exposureReference: 0.5,
-    exposureGainMin: 0.8,
-    exposureGainMax: 1.1,
+    exposureGainMin: 0.9,
+    exposureGainMax: 1.05,
   },
+  // Only broad light and shadow carries over: finer detail would show the body (or the person's own
+  // clothes) through the garment, which reads as see-through fabric (seen on real photos).
   photoShading: {
-    strength: 0.7,
-    min: 0.6,
-    max: 1.25,
+    strength: 0.5,
+    min: 0.85,
+    max: 1.1,
     /** Low-pass sigma as a fraction of canvas width. */
-    lowPassSigmaFrac: 0.02,
+    lowPassSigmaFrac: 0.1,
     /** Fine sigma (fold detail) as a fraction of canvas width. */
     detailSigmaFrac: 0.004,
-    foldGain: 0.5,
-    foldMax: 0.15,
+    foldGain: 0,
+    foldMax: 0,
   },
   silhouetteShading: {
     strength: 0.35,

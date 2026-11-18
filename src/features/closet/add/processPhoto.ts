@@ -1,5 +1,6 @@
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
+import type { AlphaMask } from '@/core/fit';
 import { wholePhotoCrop } from '@/core/image';
 import type { ColorSwatch, CutoutCrop, Item } from '@/core/model/types';
 import {
@@ -16,6 +17,8 @@ export const ORIGINAL_MAX_PX = 1600;
 export const THUMB_MAX_PX = 256;
 /** Longest side of the pixels read for colour detection (docs/ARCHITECTURE.md). */
 export const PALETTE_PX = 64;
+/** Longest side of the cutout pixels read for the capture check (docs/TRY_ON.md §8). */
+export const CAPTURE_PX = 256;
 
 const ORIGINAL_QUALITY = 0.85;
 const THUMB_QUALITY = 0.8;
@@ -42,6 +45,8 @@ export interface ProcessedPhoto {
   aspectRatio: number;
   /** Present when background removal worked: a transparent PNG trimmed to the garment. */
   cutout?: CutoutAssets;
+  /** The cutout's alpha at `CAPTURE_PX`, for the capture check; absent where pixels cannot be read. */
+  cutoutMask?: AlphaMask;
   /** True when background removal ran but could not separate the garment (plain photo kept). */
   cutoutRejected?: boolean;
 }
@@ -111,6 +116,30 @@ export async function cutOutImage(
   return { image, thumb, crop: result.crop };
 }
 
+/** The alpha channel of decoded pixels as a mask. */
+export function alphaMaskOf(data: {
+  width: number;
+  height: number;
+  rgba: ArrayLike<number>;
+}): AlphaMask {
+  const alpha = new Uint8Array(data.width * data.height);
+  for (let i = 0; i < alpha.length; i += 1) alpha[i] = data.rgba[i * 4 + 3] ?? 0;
+  return { width: data.width, height: data.height, alpha };
+}
+
+/** Reads the cutout at `uri` as an alpha mask for the capture check; `undefined` when it cannot. */
+export async function readCutoutMask(
+  pixels: PixelReader,
+  uri: string,
+): Promise<AlphaMask | undefined> {
+  try {
+    const data = await pixels.read(uri, CAPTURE_PX);
+    return data ? alphaMaskOf(data) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Adds a cutout to a processed photo and re-detects the colours from it, so a white backdrop does
  * not count as the garment's colour. Any failure resolves to the photo unchanged (silent fallback
@@ -131,7 +160,8 @@ export async function cutOutPhoto(
     } catch {
       // Keep the colours detected from the whole photo.
     }
-    return { ...photo, colors, cutout };
+    const cutoutMask = await readCutoutMask(pixels, cutout.thumb.uri);
+    return { ...photo, colors, cutout, ...(cutoutMask ? { cutoutMask } : {}) };
   } catch (error) {
     // A photo the methods could not separate is not a failure to hide: the form says so.
     return error instanceof CutoutRejectedError ? { ...photo, cutoutRejected: true } : photo;

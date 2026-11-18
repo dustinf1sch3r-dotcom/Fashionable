@@ -239,6 +239,8 @@ export interface OutfitCompositor {
     }[];
     pixelsPerUnit: number;
     seed: number;
+    /** Silhouette only: the picture's background and the figure's fill (CSS colours). */
+    palette?: { background: string; figure: string };
   }): Promise<{ uri: string }>;
   /** Release an image returned by `compose`. */
   release?(uri: string): void;

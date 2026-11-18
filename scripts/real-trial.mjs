@@ -17,11 +17,12 @@
  * 2. Every person image goes through the REAL Me flow (guide, choose photo, pose detection,
  *    correction screen, save). If detection finds no person the trial records that and falls back
  *    to manual placement.
- * 3. Every person x outfit is rendered on the outfit detail page, rigid (fitted images disabled)
- *    and fitted, and composed into trial-sheet.png (rows = outfits, columns = person rigid|fitted).
+ * 3. Every person x outfit is rendered on the outfit detail page, rigid (fitted images disabled),
+ *    fitted (layered) and fitted + merged (one picture, docs/TRY_ON.md §13), and composed into
+ *    trial-sheet.png (rows = outfits, columns = person rigid|fitted|merged).
  *
  * Output: garment-<id>-cutout.png, garment-<id>-rig.png, person-<n>-landmarks.png,
- * outfit-<name>-person-<n>-<rigid|fitted>.png, trial-sheet.png, trial-report.json/.txt.
+ * outfit-<name>-person-<n>-<rigid|fitted|merged>.png, trial-sheet.png, trial-report.json/.txt.
  * Input photos are only read from the paths given; nothing is copied into the repo.
  */
 import { Buffer } from 'node:buffer';
@@ -31,9 +32,11 @@ import {
   PHONE,
   drawRig,
   launchBrowser,
+  layeredPage,
   openTestId,
   rigidPage,
   startServer,
+  waitForMerged,
 } from './lib/harness.mjs';
 
 // ── arguments ────────────────────────────────────────────────────────────────────────────────
@@ -135,6 +138,8 @@ const readImage = (page, id) =>
 
 // ── 1. garments through the real add-item flow ───────────────────────────────────────────────
 const phone = PHONE;
+/** FIT_MIN_CONFIDENCE (src/core/fit/contract.ts): below it an unedited rig is not used for fitting. */
+const FIT_MIN_CONFIDENCE = 0.6;
 let stored; // storage state (localStorage + IndexedDB) after all garments are added
 const sheetCtx = await browser.newContext({ deviceScaleFactor: 2 });
 const sheet = await sheetCtx.newPage();
@@ -177,6 +182,13 @@ try {
       await page.getByTestId(`add-item-category-${g.category}`).click();
       if (g.subcategory) await page.getByTestId(`add-item-subcategory-${g.subcategory}`).click();
       await page.getByTestId('add-item-name').fill(g.id);
+      // The capture hint (non-blocking advice about how the garment was photographed), if shown.
+      const hint = page.getByTestId('add-item-capture-hint');
+      rec.captureHint = (await hint.isVisible().catch(() => false))
+        ? ((await hint.textContent()) ?? '').trim()
+        : null;
+      if (rec.captureHint)
+        await page.screenshot({ path: join(outDir, `garment-${g.id}-hint.png`) });
       rec.formColour =
         (await page
           .getByTestId('add-item-colour-primary')
@@ -286,7 +298,7 @@ log(`outfits: ${outfits.map((o) => o.name).join(', ') || 'none'}`);
 
 // ── 2 + 3. each person through the real Me flow, then render the outfits ────────────────────
 const slug = (s) => s.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
-const shots = {}; // shots[personIndex][outfitName] = {rigid, fitted}
+const shots = {}; // shots[personIndex][outfitName] = {rigid, fitted, merged}
 
 /** Puts the closet (items + images) built in phase 1 into a fresh browser context. */
 async function restoreCloset(page) {
@@ -381,9 +393,12 @@ async function shoot(page, n, outfit, variant, rec) {
   nav.deepLink = false;
   const fittedIds = [];
   for (const id of outfit.items) {
-    if (report.garments[id].rig) fittedIds.push(report.garments[id].itemId);
+    // Only rigs the app trusts are fitted; the others stay rigid (and offer "Check garment points").
+    const rig = report.garments[id].rig;
+    if (rig && rig.confidence >= FIT_MIN_CONFIDENCE) fittedIds.push(report.garments[id].itemId);
+    else if (rig) (rec.rigidByConfidence ??= []).push(id);
   }
-  if (variant === 'fitted') {
+  if (variant !== 'rigid') {
     for (const itemId of fittedIds) {
       try {
         await page.getByTestId(`mannequin-fitted-${itemId}`).waitFor({ timeout: 30_000 });
@@ -404,6 +419,13 @@ async function shoot(page, n, outfit, variant, rec) {
     .catch(() => {
       rec.noBackdrop = true;
     });
+  if (variant === 'merged') {
+    const timing = await waitForMerged(page, 'outfit-detail-mannequin');
+    if (timing) {
+      rec.merge = timing;
+      await page.waitForTimeout(500); // the fade from the layered drawing
+    } else rec.notMerged = true;
+  }
   await page.waitForTimeout(700);
   rec[`${variant}Ms`] = ms(t0);
   const file = join(outDir, `outfit-${slug(outfit.name)}-person-${n}-${variant}.png`);
@@ -443,16 +465,18 @@ try {
       );
       await seedOutfits(page);
       const rigid = await rigidPage(ctx);
+      const layered = await layeredPage(ctx);
       for (const o of outfits) {
         const r = { person: n, outfit: o.name };
         report.renders.push(r);
         try {
           shots[n][o.name] = {
-            fitted: await shoot(page, n, o, 'fitted', r),
+            merged: await shoot(page, n, o, 'merged', r),
+            fitted: await shoot(layered, n, o, 'fitted', r),
             rigid: await shoot(rigid, n, o, 'rigid', r),
           };
           log(
-            `  ${o.name}: fitted ${r.fittedMs} ms${r.notFitted ? ' (some items not fitted)' : ''}`,
+            `  ${o.name}: fitted ${r.fittedMs} ms, merged ${r.mergedMs} ms${r.notFitted ? ' (some items not fitted)' : ''}${r.notMerged ? ' (NOT MERGED)' : ''}`,
           );
         } catch (e) {
           r.error = String(e.message ?? e).split('\n')[0];
@@ -469,11 +493,13 @@ try {
   // ── sheet ────────────────────────────────────────────────────────────────────────────────
   const read = (f) => `data:image/png;base64,${readFileSync(f).toString('base64')}`;
   const cell = 200;
-  const cols = people.length * 2;
+  const cols = people.length * 3;
   await sheet.setViewportSize({ width: cols * (cell + 6) + 140, height: 600 });
   const head = people
     .flatMap((p, i) =>
-      [`P${i + 1} rigid`, `P${i + 1} fitted`].map((t) => `<div class="h">${t}</div>`),
+      [`P${i + 1} rigid`, `P${i + 1} fitted`, `P${i + 1} fitted + merged`].map(
+        (t) => `<div class="h">${t}</div>`,
+      ),
     )
     .join('');
   const rows = outfits
@@ -481,7 +507,7 @@ try {
       const cells = people
         .flatMap((_, i) => {
           const s = shots[i + 1]?.[o.name];
-          return ['rigid', 'fitted'].map((v) =>
+          return ['rigid', 'fitted', 'merged'].map((v) =>
             s?.[v] ? `<img src="${read(s[v])}">` : '<div class="miss">failed</div>',
           );
         })
@@ -512,8 +538,9 @@ for (const [id, g] of Object.entries(report.garments)) {
           `(${g.cutoutSize}, ${Math.round((g.transparentFraction ?? 0) * 100)}% transparent, ${g.cutoutMs} ms${g.cold ? ', cold' : ''}); ` +
           `colour ${(g.colours ?? []).join('/') || 'none'}; ` +
           (g.rig
-            ? `rig ${g.rig.kind} confidence ${g.rig.confidence} (${g.rig.points} points)`
-            : 'no rig'),
+            ? `rig ${g.rig.kind} confidence ${g.rig.confidence} (${g.rig.points} points)${g.rig.confidence >= FIT_MIN_CONFIDENCE ? ', fitted' : ', RIGID (below ' + FIT_MIN_CONFIDENCE + ')'}`
+            : 'no rig (rigid)') +
+          `; capture hint: ${g.captureHint ? `"${g.captureHint}"` : 'none'}`,
   );
 }
 lines.push('', 'PEOPLE');
@@ -526,12 +553,17 @@ for (const p of report.people) {
 }
 lines.push('', 'OUTFITS');
 for (const o of outfits) lines.push(`  ${o.name}: ${o.items.join(' + ')}`);
-lines.push('', 'RENDERS (ms)');
+/** The compositor's own timings (page load to picture is `merged`; these are the merge itself). */
+const mergeText = (m) =>
+  m?.render?.length
+    ? ` [merge: ${m.render.map((t) => `${t.width}px ${t.ms} ms (pipeline ${m.pipeline.find((p) => p.width === t.width)?.ms ?? '?'} ms)`).join(', ')}]`
+    : '';
+lines.push('', 'RENDERS (ms; "merged" = page load until the merged picture is shown)');
 for (const r of report.renders)
   lines.push(
     r.error
       ? `  P${r.person} ${r.outfit}: FAILED ${r.error}`
-      : `  P${r.person} ${r.outfit}: fitted ${r.fittedMs}, rigid ${r.rigidMs}${r.notFitted ? `, NOT FITTED: ${r.notFitted.length} item(s)` : ''}`,
+      : `  P${r.person} ${r.outfit}: fitted ${r.fittedMs}, merged ${r.mergedMs}${r.notMerged ? ' (NOT MERGED)' : ''}${mergeText(r.merge)}, rigid ${r.rigidMs}${r.notFitted ? `, NOT FITTED: ${r.notFitted.length} item(s)` : ''}${r.rigidByConfidence ? `, rigid by confidence: ${r.rigidByConfidence.join('/')}` : ''}`,
   );
 for (const p of report.people)
   if (p.console?.length) lines.push('', `CONSOLE P${p.n}`, ...p.console.map((c) => `  ${c}`));

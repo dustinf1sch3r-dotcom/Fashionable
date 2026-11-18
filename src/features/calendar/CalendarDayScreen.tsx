@@ -27,6 +27,7 @@ import { subcategoryLabel } from '../closet/labels';
 import { itemDisplayName } from '../closet/list/filter';
 import { autoName, outfitName } from '../outfits/naming';
 import { resolveOutfitItems } from '../outfits/outfitItems';
+import { useComposite } from '../shared/composite/useComposite';
 import { useFittedLayers } from '../shared/fit/useFittedLayers';
 import { useBody, type UseBody } from '../shared/useBody';
 import { useImageUris } from '../shared/useImageUris';
@@ -299,6 +300,16 @@ function DayLog({ log, today, byId, outfits, bodyView, onDelete, onYes, onNo }: 
     )
       ? saved
       : undefined;
+  const composite = useComposite({
+    items: resolved.items,
+    body,
+    ...(backdrop ? { backdrop } : {}),
+    ...(outfit ? { outfit } : {}),
+    imageUris,
+    fitted,
+    displayWidth: MANNEQUIN_WIDTH,
+    background: colors.surfaceAlt,
+  });
   const title = saved ? outfitName(saved, resolved.items) : autoName(resolved.items);
   const due = log.planned && log.date <= today;
   const status = !log.planned ? 'Worn' : due ? 'Planned — did you wear it?' : 'Planned';
@@ -347,6 +358,7 @@ function DayLog({ log, today, byId, outfits, bodyView, onDelete, onYes, onNo }: 
               {...(outfit ? { outfit } : {})}
               imageUris={imageUris}
               fitted={fitted}
+              {...(composite.uri ? { merged: composite.uri } : {})}
               interactive={false}
               testID={`day-mannequin-${log.id}`}
             />

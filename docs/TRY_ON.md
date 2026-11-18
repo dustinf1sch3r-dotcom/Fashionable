@@ -61,22 +61,22 @@ thumbnail. Start with `body-a`; the others are added once the pipeline works.
 `anchorFor(slot, body)` returns `{ centerX, topY, width }` derived from landmarks. `S` = shoulder
 width (`shoulderR.x − shoulderL.x`), `H` = hip width, `W` = waist width.
 
-| Slot                  | Centre X        | Top Y             | Width                         | Z   |
-| --------------------- | --------------- | ----------------- | ----------------------------- | --- |
-| `legs` (socks/tights) | body centre     | `knee.y`          | `H × 1.0`                     | 10  |
-| `shoes`               | body centre     | `ankle.y − 30`    | `(footR.x − footL.x) + 120`   | 35  |
-| `bottom`              | body centre     | `waist.y − 20`    | `H × 1.25`                    | 30  |
-| `base`                | body centre     | `neckBase.y − 10` | `S × 1.55` (includes sleeves) | 40  |
-| `onepiece`            | body centre     | `neckBase.y − 10` | `S × 1.55`                    | 40  |
-| `belt`                | body centre     | `waist.y − 15`    | `W × 1.15`                    | 45  |
-| `mid`                 | body centre     | `neckBase.y − 20` | `S × 1.65`                    | 50  |
-| `outer`               | body centre     | `neckBase.y − 30` | `S × 1.80`                    | 60  |
-| `neck` (scarf/tie)    | body centre     | `chin.y`          | `S × 0.6`                     | 70  |
-| `jewelry`             | body centre     | `neckBase.y`      | `S × 0.35`                    | 72  |
-| `wrist`               | `wristL.x`      | `wristL.y − 30`   | 70                            | 75  |
-| `bag`                 | `wristR.x + 60` | `wristR.y − 60`   | 260                           | 80  |
-| `head`                | `headTop.x`     | `headTop.y − 60`  | head width × 1.3              | 90  |
-| `eyes`                | `eyeLine.x`     | `eyeLine.y − 25`  | head width × 0.9              | 92  |
+| Slot                  | Centre X        | Top Y             | Width                               | Z   |
+| --------------------- | --------------- | ----------------- | ----------------------------------- | --- |
+| `legs` (socks/tights) | body centre     | `knee.y`          | `H × 1.0`                           | 10  |
+| `shoes`               | body centre     | `ankle.y − 30`    | `min((footR.x − footL.x) + 120, H)` | 35  |
+| `bottom`              | body centre     | `waist.y − 20`    | `H × 1.25`                          | 30  |
+| `base`                | body centre     | `neckBase.y − 10` | `S × 1.55` (includes sleeves)       | 40  |
+| `onepiece`            | body centre     | `neckBase.y − 10` | `S × 1.55`                          | 40  |
+| `belt`                | body centre     | `waist.y − 15`    | `W × 1.15`                          | 45  |
+| `mid`                 | body centre     | `neckBase.y − 20` | `S × 1.65`                          | 50  |
+| `outer`               | body centre     | `neckBase.y − 30` | `S × 1.80`                          | 60  |
+| `neck` (scarf/tie)    | body centre     | `chin.y`          | `S × 0.6`                           | 70  |
+| `jewelry`             | body centre     | `neckBase.y`      | `S × 0.35`                          | 72  |
+| `wrist`               | `wristL.x`      | `wristL.y − 30`   | 70                                  | 75  |
+| `bag`                 | `wristR.x + 60` | `wristR.y − 60`   | 260                                 | 80  |
+| `head`                | `headTop.x`     | `headTop.y − 60`  | head width × 1.3                    | 90  |
+| `eyes`                | `eyeLine.x`     | `eyeLine.y − 25`  | head width × 0.9                    | 92  |
 
 Shoes when the photo cuts the feet off: if either foot landmark lies outside the 1000 x 2000
 canvas (or within 10 units of its bottom), pose detection extrapolated it and says nothing about
@@ -92,7 +92,12 @@ These are starting values; expect to tune them against real photos. Keep them in
 Default: untucked.
 
 **Shoes** are photographed as a pair, side by side, toes forward or in three-quarter view; the pair
-is drawn as a single image centred between the feet.
+is drawn as a single image centred between the feet. Because it is one picture, the width is
+capped at the hip width `H` (`ANCHOR_RULES.shoes.maxOverHip`, BODY_A's pair is exactly that wide):
+a wide stance or a stride (a real photo of someone with their legs apart) widened the pair until
+each shoe was nearly twice a foot's width, with the shoes drawn closer together than the feet.
+The centre and height never change. (Placing the two shoes separately at the two feet needs the
+pair split in two; not done.)
 
 ## 5. Placement maths
 
@@ -123,7 +128,7 @@ component only maps placements to absolutely-positioned images.
 ## 7. Garment image pipeline
 
 ```
-photo ─► downscale (max 1600 px) ─► background removal ─► trim to alpha bounding box
+photo ─► downscale (max 1600 px) ─► background removal ─► hanger removal ─► trim to alpha bounding box
       ─► cutout PNG (max 1024 px long side) + thumbnail (256 px) ─► colour extraction ─► save
 ```
 
@@ -131,6 +136,23 @@ photo ─► downscale (max 1600 px) ─► background removal ─► trim to al
   fails or is unavailable, fall back to the original photo with rounded corners and mark the item
   `cutout.hasAlpha: false`; the mannequin still draws it, just as a rectangle. A manual
   "touch up" eraser/restore brush is a later ticket.
+- **Hanger removal** (`src/core/image/hanger.ts`, pure, on the alpha mask only; run on a 256-cell
+  grid, then applied to the pixels). Removed, and only above the garment's own top edge:
+  1. _thin structures_ (a wire hook and the wire's arms): the mask is opened with a square 3.5% of
+     the garment's width; what cannot hold the square is thin. A thin piece goes when it is at
+     least 1.2 squares long, centred within 15% of the garment's width, and every cell of it lies
+     above the local top edge of the opened mask. Camisole straps (not centred) and a standing
+     collar band (thicker than the square) stay.
+  2. _a solid hanger neck_: the topmost rows are one run narrower than 20% of the width, centred,
+     at most 12% of the height tall, with the shoulders starting on both sides below it and the run
+     narrower than 60% of the neckline it rises from. A hood (wider) or a funnel neck (wider than
+     any hanger) stays.
+
+  Nothing is removed when it would be more than 10% of the garment. A hanger whose body lies
+  _inside_ the garment's silhouette (a plastic hanger seen through an open collar) cannot be told
+  from the garment by alpha alone and stays; so does the hanger's wire where it lies against the
+  garment. The same removal runs before rig detection for cutouts that were made earlier.
+
 - Trim: find the bounding box of pixels with alpha > 16, add 2% padding, crop.
 - Colour extraction reads only pixels with alpha > 128 (see ARCHITECTURE.md §Colour extraction).
 
@@ -140,6 +162,21 @@ The add-item screen shows, per category, a faint outline (tee shape, trouser sha
 three tips: plain contrasting background, lay flat or hang, shoot straight-on from above. After
 background removal, show the cutout on the mannequin immediately so the user can fix the fit while
 the garment is still in front of them.
+
+**Capture hints** (`src/core/fit/capture.ts`, shown in the add form as `add-item-capture-hint`,
+never blocking). The cutout's alpha (256 px) is checked as soon as the cutout exists, and again
+when the category changes or the cutout is touched up. Codes, most important first; the form shows
+the first one:
+
+| Code             | Meaning                                                                                                                                                  | Copy (UI layer: `captureHints.ts`)                                                              |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `cut-off`        | the garment's pixels reach a border of the cutout (the cutout service pads 2%, so only the photo's edge)                                                 | "The garment looks cut off — for the best fit, photograph the whole piece laid flat."           |
+| `several-pieces` | more than one separate piece of at least 15% of the biggest (and 1% of the frame), or a bar above the garment much wider than its hooks (a clothes rail) | "There seem to be other clothes (or a rail) in this photo — …photograph one piece on its own."  |
+| `folded`         | trousers or a jumpsuit with no gap between the legs; or a top, dress or jumpsuit with neither sleeves nor a neck dip                                     | trousers: "The legs are not showing apart — …"; others: "This looks folded or hung in half — …" |
+| `unclear`        | none of the above, but detection has no rig or one below `FIT_MIN_CONFIDENCE`                                                                            | "We could not read this garment's outline well, so it will keep a simple fit. …"                |
+
+Shoes and other unfitted items only get the `cut-off` check. Hint copy never says "fix"; the photo
+is kept either way.
 
 ## 9. Rendering
 
@@ -302,8 +339,40 @@ outline. Heuristics per kind:
   height; then skirt or trouser rules below the waist.
 
 Each detection returns a `confidence` 0–1 (outline sanity: symmetry, order, plausible ratios).
-Below `FIT_MIN_CONFIDENCE` the item still uses the rig but the item detail screen offers "Check
-garment points". Detection also runs lazily for existing items the first time they are drawn.
+**Below `FIT_MIN_CONFIDENCE` (0.6) a detected rig is not used for fitting**: the garment keeps the
+§5 rigid placement (a wrong rig warps a jacket into a long dress) and the item detail screen offers
+"Check garment points". Points the user has edited (`rig.edited`) are always used, and the points
+editor's preview always fits (`fitUsable`, `src/features/shared/fit/rigLifecycle.ts`). Detection
+also runs lazily for existing items the first time they are drawn.
+
+Real photos (a hanger, a tilted flat-lay, wrinkles, bent sleeves) taught these rules, all numbers
+in `FIT_RULES`:
+
+- A neck dip that is not visible (a hanger's arms or a collar fill it) multiplies confidence by
+  `noNeckSleeved` 0.8 when at least one sleeve was found, but still by `noNeck` 0.45 when there
+  are no sleeves either (that is how a skirt or trousers read as a "top" stay unconfident).
+- The **hem** is the lowest row that is at least 90% as wide as the median row 10–35% of the height
+  above the bottom (a wavy or curled hem leaves a few short rows at the very bottom).
+- The **armpit** of a sleeve with no gap is the highest point of the sleeve's underside; on a flat
+  underside, the column nearest the torso within 3% of the upper height of it, and the columns
+  scanned always include the 3 left of the torso edge (a cuff that meets the torso).
+- A **cuff jump** is the last leap of a chain of leaps at most 3 rows apart (a ragged, slanted cuff
+  edge climbs in steps).
+- A sleeve whose **underside is a slant** with no step (a photographed tee: the cuff runs
+  diagonally into the torso) is found when no sharp leap exists: the left edge moves in
+  monotonically (at least 1.2 jumps over 4 rows, on average at least 0.9 cells a row, ending at
+  least 12% of the width inside the outermost point) and the torso below stays put (it drifts by at
+  most 0.2 cells a row over 10% of the height). A bust or a waist curves gently and stays unfound.
+- Cut off at the photo's edge is a capture hint (§8) and **not** part of confidence: the tight
+  fixture cutouts touch their borders and are fine.
+
+`RIG_VERSION` is 2: the hem, armpit, cuff-jump and neckless rules above changed what detection finds,
+so unedited rigs of version 1 are detected again the first time they are drawn.
+
+Calibration on real photos (`scripts/real-trial.mjs`): a white tee on a wire hanger scores 0.09
+before and 0.71 after hanger removal and these rules (points on the shoulders, cuffs, armpits and
+hem); a leather jacket photographed cut off at the chest, a jacket on a clothes rail and folded
+jeans stay at or below 0.26 (jeans have no rig at all) and are fitted rigidly.
 
 ### 12.3 Body targets (`src/core/fit/targets.ts`, pure)
 
@@ -488,3 +557,35 @@ The web compositor decodes the backdrop and layer images to RGBA (canvas), runs 
 and encodes one image. It is cached by backdrop, body, the layers' cache keys and density. The
 Mannequin shows the layered version until the merged image is ready, then fades to it. While a
 garment is being edited (Mix fit editor, garment points), the layered version is shown.
+
+### 13.3 Decisions (C2)
+
+- **Where it runs.** `compositor.web.ts` decodes the backdrop and every layer on the main thread
+  (one macrotask yield per layer), then runs `compositeOutfit` in a dedicated Web Worker
+  (`pipeline.worker.ts`, bundled by Metro through `new Worker(new URL(...))`, so it works under the
+  GitHub Pages base path) and encodes a JPEG (quality 0.9) object URL. Measured in headless
+  Chromium: the pipeline alone blocks the main thread for about 100 ms on the silhouette and
+  270–290 ms on a photo at 500 × 1000 (first merge), 50–110 ms once warm; threshold was 150 ms, so
+  it moved to the worker, after which no long task came from compositing (the longest remaining
+  main-thread slices are decoding and encoding, 50–110 ms). Without `Worker`, or if it fails to
+  start, the same function runs on the main thread. In the real trial (phone-sized photos, machine under load) the pipeline took 220–560 ms inside the worker and a whole merge 1.2–1.6 s; the page stayed responsive meanwhile. The worker is dropped after 60 s idle.
+- **Layers.** The compositor receives each garment as one image already placed in mannequin units
+  (`mergeLayers` in `src/features/shared/composite/layers.ts`): warped images at their own bounds,
+  rigid cutouts shrunk to their aspect inside the placement box ("contain"), `fitAdjust` and tuck
+  applied, bottom to top. Rotated layers are drawn into the bounding box of the rotated rectangle.
+- **Backdrop.** Photo: the body photo drawn "cover". Silhouette: the art in
+  `src/core/tryon/silhouetteArt.ts` (moved from `ui/mannequin/bodyA.ts`, which re-exports it) drawn
+  as SVG, on the colour of the surface the Mannequin sits on (`palette`; the JPEG has no alpha).
+- **Cache** (`compositeEngine.ts`). LRU of 30 pictures keyed by backdrop (photo URL or silhouette
+  id and surface colour), body signature, each layer's identity (warped image URL and placement, or
+  item, cutout id and placement; this includes `fitAdjust`) and density. Identical requests share
+  one render, renders run one at a time, a key that failed is not retried. Evicted pictures are
+  released unless still on screen (pinned by the hook). A cached picture is returned on the first
+  render, so coming back to an outfit shows it instantly.
+- **When it starts.** `useComposite` waits until the inputs have not changed for 250 ms (warped
+  garments arrive one after another) and until every garment has a picture. While a garment is
+  selected for editing in Mix the hook is off and the Mannequin shows the layers; deselecting
+  brings the merged picture back (from the cache if nothing changed).
+- **Mannequin.** `merged` is drawn as one image over the layered drawing, fading in once decoded.
+  The layers stay mounted underneath, so taps still reach the garments through it (it takes no
+  pointer events) and nothing reloads when it goes away. Not used by Insights (stays layered).

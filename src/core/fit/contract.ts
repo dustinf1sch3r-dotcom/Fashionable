@@ -20,7 +20,7 @@ export interface FitMesh {
 }
 
 /** Rule-set version stored on rigs produced by `detectRig`; bump when detection changes. */
-export const RIG_VERSION = 1;
+export const RIG_VERSION = 2;
 
 /** Below this detection confidence the UI offers "Check garment points". */
 export const FIT_MIN_CONFIDENCE = 0.6;

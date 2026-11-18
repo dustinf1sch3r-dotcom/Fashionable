@@ -101,3 +101,45 @@ describe('shoes when the photo cut the feet off', () => {
     expect(a.centerX).toBe(anchorFor('shoes', BODY_A).centerX);
   });
 });
+
+describe('shoes with a wide stance or a stride', () => {
+  const l = BODY_A.landmarks;
+  const hips = l.hipR.x - l.hipL.x;
+  const stance = (gap: number) => ({
+    ...BODY_A,
+    landmarks: {
+      ...l,
+      footL: { x: 500 - gap / 2, y: 1940 },
+      footR: { x: 500 + gap / 2, y: 1940 },
+    },
+  });
+
+  it('grows with the stance up to the width of the hips, and no further', () => {
+    expect(anchorFor('shoes', stance(100)).width).toBe(220);
+    expect(anchorFor('shoes', stance(200)).width).toBe(320);
+    // The default stance of BODY_A is exactly at the limit.
+    expect(anchorFor('shoes', BODY_A).width).toBe(hips);
+    expect(anchorFor('shoes', stance(420)).width).toBe(hips);
+    expect(anchorFor('shoes', stance(700)).width).toBe(hips);
+  });
+
+  it('shoes from the ankles are capped the same way', () => {
+    const wide = {
+      ...BODY_A,
+      landmarks: {
+        ...l,
+        ankleL: { x: 100, y: 1860 },
+        ankleR: { x: 900, y: 1860 },
+        footL: { x: 100, y: 2300 },
+        footR: { x: 900, y: 2300 },
+      },
+    };
+    expect(anchorFor('shoes', wide).width).toBe(hips);
+  });
+
+  it('never changes where the shoes are centred or how high', () => {
+    const a = anchorFor('shoes', stance(700));
+    expect(a.topY).toBe(1830);
+    expect(a.centerX).toBe(anchorFor('shoes', BODY_A).centerX);
+  });
+});

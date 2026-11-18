@@ -45,3 +45,5 @@ export {
   scoreCutout,
 } from './key';
 export type { BackgroundModel, CutoutChoice, CutoutMethod, CutoutScore, KeyResult } from './key';
+export { HANGER_RULES, removeHanger, removeHangerFromRgba } from './hanger';
+export type { HangerRemoval } from './hanger';

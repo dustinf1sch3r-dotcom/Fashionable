@@ -1,4 +1,5 @@
-import { detectRig, RIG_VERSION, rigKindOf, type AlphaMask } from '@/core/fit';
+import { detectRig, FIT_MIN_CONFIDENCE, RIG_VERSION, rigKindOf, type AlphaMask } from '@/core/fit';
+import { removeHanger } from '@/core/image';
 import type { GarmentRig, ID, Item } from '@/core/model/types';
 import type { PixelReader } from '@/services';
 
@@ -23,7 +24,12 @@ export async function detectItemRig(
     if (!data) return undefined;
     const alpha = new Uint8Array(data.width * data.height);
     for (let i = 0; i < alpha.length; i += 1) alpha[i] = data.rgba[i * 4 + 3] ?? 0;
-    const mask: AlphaMask = { width: data.width, height: data.height, alpha };
+    // Cutouts made before hanger removal existed may still carry a hook: it is not the garment.
+    const mask: AlphaMask = {
+      width: data.width,
+      height: data.height,
+      alpha: removeHanger({ width: data.width, height: data.height, alpha }).alpha,
+    };
     return detectRig(mask, kind);
   } catch {
     return undefined;
@@ -38,6 +44,15 @@ export function isFittable(item: Pick<Item, 'category' | 'subcategory' | 'cutout
   } catch {
     return false;
   }
+}
+
+/**
+ * Is this rig good enough to fit the garment to a body with? Points the user edited always are;
+ * detected ones only above `FIT_MIN_CONFIDENCE`. Below it the garment keeps rigid placement (a
+ * wrong rig warps it into something else) and the item offers "Check garment points".
+ */
+export function fitUsable(rig: GarmentRig): boolean {
+  return rig.edited || rig.confidence >= FIT_MIN_CONFIDENCE;
 }
 
 /**

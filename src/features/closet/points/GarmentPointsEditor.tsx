@@ -73,7 +73,11 @@ export function GarmentPointsEditor({
   const box = containBox(area.width, area.height, item.cutout.aspectRatio);
 
   const settled = useSettled(rig, PREVIEW_DELAY_MS);
-  const previewItem = useMemo(() => ({ ...item, fit: settled }), [item, settled]);
+  // The preview always fits: the user is checking these very points, however sure detection was.
+  const previewItem = useMemo(
+    () => ({ ...item, fit: { ...settled, edited: true } }),
+    [item, settled],
+  );
   const previewItems = useMemo(() => [previewItem], [previewItem]);
   const imageUris = useMemo(() => ({ [item.images.cutoutId]: cutoutUri }), [item, cutoutUri]);
   const fitted = useFittedLayers(previewItems, body, { imageUris, displayWidth: PREVIEW_WIDTH });

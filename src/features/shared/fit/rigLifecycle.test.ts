@@ -1,11 +1,18 @@
 import type { GarmentRig, Item } from '@/core/model/types';
 import { fixtureById } from '@/core/testing/fixtures';
 import type { PixelReader } from '@/services';
-import { createLazyRigDetector, detectItemRig, isFittable, rigIsCurrent } from './rigLifecycle';
+import {
+  createLazyRigDetector,
+  detectItemRig,
+  fitUsable,
+  isFittable,
+  rigIsCurrent,
+} from './rigLifecycle';
 
 const mockDetect = jest.fn();
 jest.mock('@/core/fit', () => ({
   RIG_VERSION: 2,
+  FIT_MIN_CONFIDENCE: 0.6,
   rigKindOf: (i: { category: string }) =>
     i.category === 'top' ? 'top' : i.category === 'bottom' ? 'trousers' : undefined,
   detectRig: (...args: unknown[]) => mockDetect(...args),
@@ -109,5 +116,13 @@ describe('createLazyRigDetector', () => {
     expect(pixels.read).toHaveBeenCalledTimes(2);
     d.flush();
     expect(save).not.toHaveBeenCalled();
+  });
+});
+
+describe('fitUsable', () => {
+  it('needs the confidence threshold unless the points were edited', () => {
+    expect(fitUsable(rig({ confidence: 0.6 }))).toBe(true);
+    expect(fitUsable(rig({ confidence: 0.59 }))).toBe(false);
+    expect(fitUsable(rig({ confidence: 0.01, edited: true }))).toBe(true);
   });
 });

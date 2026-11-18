@@ -19,14 +19,22 @@ describe('photo shading', () => {
     for (const v of m) expect(v).toBeCloseTo(1, 4);
   });
 
-  it('a dark vertical band under the garment darkens that band', () => {
+  it('a broad shadow under the garment darkens that side', () => {
+    // Left half of the photo in shade: the garment's left side should come out darker.
+    const lum = new Float32Array(W * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) lum[y * W + x] = x < W / 2 ? 70 : 150;
+    const m = photoShading(lum, ones(), W, H, 200);
+    expect(m[20 * W + 5]).toBeLessThan(m[20 * W + (W - 6)]! - 0.05);
+  });
+
+  it('fine detail under the garment does not show through (no see-through fabric)', () => {
+    // A narrow dark stripe (a body outline, the edge of the person's own clothes) must barely
+    // change the garment: transferring it reads as translucent fabric on real photos.
     const lum = new Float32Array(W * H);
     for (let y = 0; y < H; y++)
       for (let x = 0; x < W; x++) lum[y * W + x] = x >= 25 && x < 35 ? 50 : 150;
     const m = photoShading(lum, ones(), W, H, 200);
-    expect(m[20 * W + 30]).toBeLessThan(m[20 * W + 5]! - 0.1);
-    expect(m[20 * W + 30]).toBeLessThan(0.9);
-    expect(m[20 * W + 5]).toBeGreaterThan(1);
+    expect(Math.abs(m[20 * W + 30]! - m[20 * W + 5]!)).toBeLessThan(0.05);
   });
 
   it('keeps the average brightness (mean multiplier ~1) and stays within the clamp', () => {

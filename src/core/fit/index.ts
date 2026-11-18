@@ -4,7 +4,12 @@
  */
 export { FIT_MIN_CONFIDENCE, RIG_VERSION } from './contract';
 export type { AlphaMask, FitMesh } from './contract';
-export { detectRig } from './detect';
+export { detectRig, detectStructure } from './detect';
+export type { GarmentStructure } from './detect';
+export { assessCapture, countPieces, hasTopBar, CAPTURE_RULES } from './capture';
+export type { CaptureProblem } from './capture';
+export { edgeContact } from './contact';
+export type { EdgeContact } from './contact';
 export { buildFitMesh } from './mesh';
 export { nestInside } from './nest';
 export { rigKindOf, rigPointNames } from './rigs';

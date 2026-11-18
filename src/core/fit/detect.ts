@@ -24,6 +24,8 @@ interface Raw {
   /** Height the vertical symmetry error is measured against. */
   height: number;
   noNeck?: boolean;
+  /** At least one sleeve was found (a neckless garment with sleeves is probably still a top). */
+  sleeved?: boolean;
   badOrder?: boolean;
   badRatio?: boolean;
   notKind?: boolean;
@@ -181,11 +183,63 @@ function leftSide(p: Prep, hu: number, searchTo: number): Side {
   const reachT = Math.max(2, D.sleeveReach * wb);
   let jumpRow = -1;
   const after = Math.max(3, Math.ceil(D.minAfterCuff * (yEnd - y0)));
+  // A leap of the left edge back towards the torso: one sharp step (a cuff that ends flat), or a
+  // steady slant over a few rows (a sleeve whose underside runs diagonally into the torso). A slant
+  // is a sleeve only if the torso below it is straight (the edge stays about where the slant ended)
+  // rather than going on curving, as a waist does.
+  const slantEnd = (y: number): number | undefined => {
+    const W = D.cuffWindow;
+    if (y + W >= yEnd) return undefined;
+    for (let k = 0; k <= W; k++) if (!hasRow(p, y + k)) return undefined;
+    for (let k = 0; k < W; k++) if (rowL(p, y + k + 1) < rowL(p, y + k)) return undefined;
+    if (rowL(p, y + W) - rowL(p, y) < D.cuffSlant * jumpT) return undefined;
+    if (rowL(p, y + W) - minL < reachT) return undefined;
+    let e = y + W;
+    while (
+      e + 1 < yEnd - after &&
+      hasRow(p, e + 1) &&
+      rowL(p, e + 1) - rowL(p, e) >= D.cuffSlantStep
+    ) {
+      e++;
+    }
+    // A sleeve's underside is steep (a waist or a bust curves gently), and the sleeve really
+    // sticks out: the slant ends well inside the outermost point.
+    if (rowL(p, e) - rowL(p, y) < D.cuffSlope * (e - y)) return undefined;
+    if (rowL(p, e) - minL < D.cuffSlantReach * wb) return undefined;
+    const rows = Math.max(4, Math.ceil(D.cuffPlateau * (yEnd - y0)));
+    for (let k = 1; k <= rows; k++) {
+      if (!hasRow(p, e + k)) return undefined;
+      if (Math.abs(rowL(p, e + k) - rowL(p, e + 1)) > D.cuffDrift * k) return undefined;
+    }
+    return e;
+  };
+  const chain = (from: number): number => {
+    // A ragged, slanted cuff edge leaps in steps: the last leap of a chain is the one that reaches
+    // the torso.
+    let last = from;
+    for (let k = 1; k <= D.cuffChainRows && last + k + 1 < yEnd; k++) {
+      if (hasRow(p, last + k + 1) && rowL(p, last + k + 1) - rowL(p, last + k) >= jumpT) {
+        last += k;
+        k = 0;
+      }
+    }
+    return last;
+  };
   for (let y = yMin; y < yEnd - after; y++) {
     if (!hasRow(p, y + 1)) break;
     if (rowL(p, y + 1) - rowL(p, y) >= jumpT && rowL(p, y + 1) - minL >= reachT) {
-      jumpRow = y;
+      jumpRow = chain(y);
       break;
+    }
+  }
+  if (jumpRow < 0) {
+    // No sharp step: a sleeve whose underside is a slant, if there is one.
+    for (let y = yMin; y < yEnd - after; y++) {
+      const e = slantEnd(y);
+      if (e !== undefined) {
+        jumpRow = chain(e);
+        break;
+      }
     }
   }
   let jumpTorso: number | undefined;
@@ -340,24 +394,36 @@ function leftSide(p: Prep, hu: number, searchTo: number): Side {
   if (sleeved && !armpit) {
     // No gap: the sleeve's underside meets the torso at the lowest point of the columns between
     // the cuff and the torso (their first vertical run ends at the sleeve's underside).
-    const from = clamp(Math.floor((cuffInner as Pt).x), p.x0, p.x1 - 1);
+    // A sleeve whose underside is flat (or whose cuff meets the torso) has no slanted underside to
+    // scan: look at the few columns under it, left of the torso's edge.
+    const from = clamp(
+      Math.floor(Math.min((cuffInner as Pt).x, torsoJump - D.undersideCols)),
+      p.x0,
+      p.x1 - 1,
+    );
     let best = -1;
-    let bestB = Infinity;
     const fb = (c: number): number => {
       const a = p.firstBottom[Math.max(p.x0, c - 1)] as number;
       const b = p.firstBottom[c] as number;
       const d = p.firstBottom[Math.min(p.x1 - 1, c + 1)] as number;
       return a < 0 || b < 0 || d < 0 ? b : median([a, b, d]);
     };
+    const profile: { c: number; b: number }[] = [];
     for (let c = Math.max(from, Math.ceil(torsoJump) - 1); c >= from; c--) {
       const b = fb(c);
-      if (b >= 0 && b < bestB) {
-        best = c;
-        bestB = b;
+      if (b >= 0) profile.push({ c, b });
+    }
+    // The highest point of the underside; on a (nearly) flat underside the one next to the torso.
+    const bestB = profile.length > 0 ? Math.min(...profile.map((q) => q.b)) : Infinity;
+    const tie = Math.max(1, D.armpitTie * hu);
+    for (const q of profile) {
+      if (q.b <= bestB + tie) {
+        best = q.c;
+        break;
       }
     }
     if (best >= 0) {
-      armpit = pt(best + 0.5, bestB);
+      armpit = pt(best + 0.5, (profile.find((q) => q.c === best) as { b: number }).b);
       torsoL = best + 0.5;
     } else armpit = pt(torsoJump, sleeveEnd + 1);
     shoulder = shoulderAt(torsoL);
@@ -389,6 +455,7 @@ function median(v: number[]): number {
 interface Upper {
   points: Pts;
   noNeck: boolean;
+  sleeved: boolean;
   oneSided: boolean;
   /** Torso edges beside the sleeve gaps, where there are gaps. */
   torsoL?: number;
@@ -419,6 +486,7 @@ function upper(p: Prep, hu: number, searchTo: number): Upper {
   return {
     points,
     noNeck: l.noNeck || r.noNeck,
+    sleeved: l.sleeved || r.sleeved,
     oneSided: l.sleeved !== r.sleeved,
     torsoL: l.torso,
     torsoR: r.torso === undefined ? undefined : p.w - r.torso,
@@ -602,9 +670,24 @@ function findLegs(p: Prep): Legs | undefined {
 
 function bottomHem(p: Prep): { a: number; b: number; y: number } | undefined {
   const wb = p.x1 - p.x0;
+  const hb = p.y1 - p.y0;
   const runAt = (y: number): Run | undefined => runAround(p, y, p.cx, 0.06 * wb);
   for (let y = p.y1 - 1; y >= p.y0; y--) {
     if (!runAt(y)) continue;
+    // A wavy hem (wrinkles, a curled corner) leaves a few short rows at the bottom: the hem is the
+    // lowest row that is nearly as wide as the rows just above it.
+    const widths: number[] = [];
+    for (let k = Math.ceil(D.hemRefFrom * hb); k <= Math.ceil(D.hemRefTo * hb); k++) {
+      const r = y - k >= p.y0 ? runAt(y - k) : undefined;
+      if (r) widths.push(r.b - r.a);
+    }
+    if (widths.length >= 3) {
+      const ref = median(widths);
+      for (let yy = y; yy >= Math.max(p.y0, y - Math.ceil(D.hemSearch * hb)); yy--) {
+        const r = runAt(yy);
+        if (r && r.b - r.a >= D.hemFill * ref) return { a: r.a, b: r.b, y: yy + 1 };
+      }
+    }
     const e = edgeRow(y, -1, p.y1, D.edgeBand, runAt);
     return e ? { a: e.run.a, b: e.run.b, y: e.y + 1 } : undefined;
   }
@@ -630,6 +713,7 @@ function detectTop(p: Prep): Raw | undefined {
     pairs: [...UPPER_PAIRS, ['hemL', 'hemR']],
     height: hb,
     noNeck: up.noNeck,
+    sleeved: up.sleeved,
     badOrder: !ok,
     badRatio: up.oneSided || !(length / sw >= 0.2 && length / sw <= 4),
   };
@@ -756,6 +840,7 @@ function detectDress(p: Prep): Raw | undefined {
     pairs: [...UPPER_PAIRS, ['waistL', 'waistR'], ['hipL', 'hipR'], ['hemL', 'hemR']],
     height: hb,
     noNeck: up.noNeck,
+    sleeved: up.sleeved,
     badOrder: !ok,
     badRatio: up.oneSided || (hem.y - waistY) / hb < 0.15,
   };
@@ -807,6 +892,7 @@ function detectJumpsuit(p: Prep): Raw | undefined {
     ],
     height: hb,
     noNeck: up.noNeck,
+    sleeved: up.sleeved,
     badOrder: !ok,
     badRatio: up.oneSided || !(crotchFrac >= 0.3 && crotchFrac <= 0.8),
   };
@@ -838,17 +924,27 @@ function confidenceOf(raw: Raw, cleanliness: number): number {
   }
   const asym = n > 0 ? sum / n : 1;
   let c = cleanliness * (1 - C.asymmetry * asym);
-  if (raw.noNeck) c *= C.noNeck;
+  if (raw.noNeck) c *= raw.sleeved ? C.noNeckSleeved : C.noNeck;
   if (raw.badOrder) c *= C.badOrder;
   if (raw.badRatio) c *= C.badRatio;
   if (raw.notKind) c *= C.notKind;
   return clamp(c, 0, 1);
 }
 
-/** Automatic rig detection from the cutout's alpha mask (§12.2). */
-export function detectRig(mask: AlphaMask, kind: RigKind): GarmentRig | undefined {
+/** What detection found besides the rig: used to judge how the garment was photographed. */
+export interface GarmentStructure {
+  rig: GarmentRig | undefined;
+  /** Sleeves found (0–2); `undefined` for kinds without an upper body. */
+  sleeves?: number;
+  /** A neck dip was found (tops, dresses, jumpsuits). */
+  neck?: boolean;
+  /** Trousers and jumpsuits: the gap between the legs was found. */
+  legGap?: boolean;
+}
+
+function run(mask: AlphaMask, kind: RigKind): GarmentStructure | undefined {
   const base = prepare(mask);
-  if (!base) return undefined;
+  if (!base) return { rig: undefined };
   const { prep, unrotate } = deskew(
     base,
     kind === 'trousers' || kind === 'skirt' ? 'topEdge' : 'bbox',
@@ -863,7 +959,9 @@ export function detectRig(mask: AlphaMask, kind: RigKind): GarmentRig | undefine
           : kind === 'dress'
             ? detectDress(prep)
             : detectJumpsuit(prep);
-  if (!raw) return undefined;
+  const upperKind = kind === 'top' || kind === 'dress' || kind === 'jumpsuit';
+  const legKind = kind === 'trousers' || kind === 'jumpsuit';
+  if (!raw) return { rig: undefined, ...(legKind ? { legGap: false } : {}) };
   const points: Record<string, Point> = {};
   for (const [name, q] of Object.entries(raw.points)) {
     const [gx, gy] = unrotate(q.x, q.y);
@@ -872,11 +970,31 @@ export function detectRig(mask: AlphaMask, kind: RigKind): GarmentRig | undefine
       y: clamp((gy * base.scale) / mask.height, 0, 1),
     };
   }
-  return {
+  const rig: GarmentRig = {
     kind,
     version: RIG_VERSION,
     points,
     confidence: confidenceOf(raw, base.cleanliness),
     edited: false,
   };
+  return {
+    rig,
+    ...(upperKind
+      ? {
+          sleeves: ['cuffOuterL', 'cuffOuterR'].filter((n) => n in points).length,
+          neck: !raw.noNeck,
+        }
+      : {}),
+    ...(legKind ? { legGap: true } : {}),
+  };
+}
+
+/** Automatic rig detection from the cutout's alpha mask (§12.2). */
+export function detectRig(mask: AlphaMask, kind: RigKind): GarmentRig | undefined {
+  return run(mask, kind)?.rig;
+}
+
+/** Detection plus what it saw (sleeves, neck, gap between the legs), for capture checks. */
+export function detectStructure(mask: AlphaMask, kind: RigKind): GarmentStructure {
+  return run(mask, kind) ?? { rig: undefined };
 }

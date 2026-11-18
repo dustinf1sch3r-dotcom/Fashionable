@@ -113,12 +113,19 @@ describe('compositeOutfit', () => {
     expect(Math.min(r, g, b)).toBeGreaterThan(170);
   });
 
-  it('shading: a dark band under the garment darkens that band of the garment', () => {
+  it('shading: a broad shadow on one side darkens that side of the garment', () => {
+    const photo = fill(100, 120, (x) => (x < 50 ? [70, 70, 70, 255] : [150, 150, 150, 255]));
+    const out = compositeOutfit(input({ backdrop: photo }));
+    expect(meanRect(out, 22, 50, 30, 80)).toBeLessThan(meanRect(out, 70, 50, 78, 80) - 4);
+  });
+
+  it('shading: a narrow dark band under a garment does not show through it', () => {
+    // 3% of the canvas width: the scale of a body outline or the edge of the person's own clothes.
     const photo = fill(100, 120, (x) =>
-      x >= 45 && x < 55 ? [70, 70, 70, 255] : [140, 140, 140, 255],
+      x >= 48 && x < 51 ? [70, 70, 70, 255] : [140, 140, 140, 255],
     );
     const out = compositeOutfit(input({ backdrop: photo }));
-    expect(meanRect(out, 47, 50, 53, 80)).toBeLessThan(meanRect(out, 33, 50, 39, 80) - 12);
+    expect(Math.abs(meanRect(out, 48, 50, 51, 80) - meanRect(out, 33, 50, 39, 80))).toBeLessThan(6);
   });
 
   it('silhouette: no cast, edges of a garment darker than its centre; contact shadow is lighter', () => {

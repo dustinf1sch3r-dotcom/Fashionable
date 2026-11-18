@@ -1,12 +1,15 @@
 // Generates e2e/fixtures/red-tee-600x800.png: a red T-shirt silhouette with soft shading and fabric
 // noise on a light grey backdrop, 600x800. Used to check background removal end to end.
 // Run: node e2e/fixtures/make-red-tee.mjs
+// A shorter photo cuts the tee off at the bottom edge (the capture hint test):
+//   node e2e/fixtures/make-red-tee.mjs 450 red-tee-cutoff-600x450.png
 import { Buffer } from 'node:buffer';
 import { deflateSync } from 'node:zlib';
 import { writeFileSync } from 'node:fs';
 
 const WIDTH = 600;
-const HEIGHT = 800;
+const HEIGHT = Number(process.argv[2] ?? 800);
+const OUT = process.argv[3] ?? 'red-tee-600x800.png';
 const SUPER = 3; // samples per axis for anti-aliased edges
 
 // Clockwise outline of a T-shirt: neckline, right shoulder and sleeve, body, left sleeve.
@@ -96,7 +99,7 @@ ihdr[8] = 8; // bit depth
 ihdr[9] = 2; // colour type: RGB
 
 writeFileSync(
-  new URL('./red-tee-600x800.png', import.meta.url),
+  new URL(`./${OUT}`, import.meta.url),
   Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
     chunk('IHDR', ihdr),

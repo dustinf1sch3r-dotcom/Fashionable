@@ -49,6 +49,75 @@ describe('Mannequin', () => {
     expect(screen.getByTestId('mannequin-item-jeans-dark')).toBeTruthy();
   });
 
+  describe('merged picture', () => {
+    it('draws the merged image over the layers and keeps the garments tappable', async () => {
+      const onSelectItem = jest.fn();
+      await render(
+        <Mannequin
+          body={BODY_A}
+          items={items}
+          imageUris={uris}
+          merged="blob:merged"
+          onSelectItem={onSelectItem}
+        />,
+      );
+      const merged = screen.getByTestId('mannequin-merged');
+      expect(merged.props.source).toEqual({ uri: 'blob:merged' });
+      // It never takes touches; the garments underneath still do.
+      expect(merged.props.pointerEvents).toBe('none');
+      expect(screen.getByTestId('mannequin-item-tee-white')).toBeTruthy();
+      await fireEvent.press(screen.getByTestId('mannequin-item-tee-white'));
+      expect(onSelectItem).toHaveBeenCalledWith('tee-white');
+    });
+
+    it('shows the layers only while a garment is selected for editing', async () => {
+      const { rerender } = await render(
+        <Mannequin
+          body={BODY_A}
+          items={items}
+          imageUris={uris}
+          merged="blob:merged"
+          onSelectItem={() => undefined}
+          onFitChange={() => undefined}
+        />,
+      );
+      expect(screen.getByTestId('mannequin-merged')).toBeTruthy();
+      await rerender(
+        <Mannequin
+          body={BODY_A}
+          items={items}
+          imageUris={uris}
+          merged="blob:merged"
+          selectedItemId="tee-white"
+          onSelectItem={() => undefined}
+          onFitChange={() => undefined}
+        />,
+      );
+      expect(screen.queryByTestId('mannequin-merged')).toBeNull();
+      expect(screen.getByTestId('mannequin-item-tee-white')).toBeTruthy();
+      await rerender(
+        <Mannequin
+          body={BODY_A}
+          items={items}
+          imageUris={uris}
+          merged="blob:merged"
+          onSelectItem={() => undefined}
+          onFitChange={() => undefined}
+        />,
+      );
+      expect(screen.getByTestId('mannequin-merged')).toBeTruthy();
+    });
+
+    it('draws only the layers without a merged picture, and swaps when it changes', async () => {
+      const { rerender } = await render(<Mannequin body={BODY_A} items={items} imageUris={uris} />);
+      expect(screen.queryByTestId('mannequin-merged')).toBeNull();
+      await rerender(<Mannequin body={BODY_A} items={items} imageUris={uris} merged="blob:a" />);
+      expect(screen.getByTestId('mannequin-merged').props.source).toEqual({ uri: 'blob:a' });
+      await rerender(<Mannequin body={BODY_A} items={items} imageUris={uris} merged="blob:b" />);
+      expect(screen.getByTestId('mannequin-merged').props.source).toEqual({ uri: 'blob:b' });
+    });
+  });
+
   it('applies rotation from the item fit', async () => {
     const tee = {
       ...fixtureById('tee-white'),

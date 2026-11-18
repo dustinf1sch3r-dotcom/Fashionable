@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Renders the "garments fitted to the body" gallery (docs/TRY_ON.md §12): five outfits on the
- * silhouette and, optionally, on a real photo, each drawn rigid (before) and fitted (after).
+ * Renders the "garments fitted to the body" gallery (docs/TRY_ON.md §12–§13): five outfits on the
+ * silhouette and, optionally, on a real photo, each drawn rigid (before), fitted (layered) and
+ * fitted + merged (one picture, §13).
  *
  *   npm run build:web
  *   node scripts/fit-gallery.mjs <outDir> [--photo <path.jpg>] [--dist <dir>] [--debug-rigs]
@@ -13,8 +14,9 @@
  * minute. Rigid pictures are made by stopping fitted images from being encoded, which makes the
  * Mannequin keep the old rigid placement.
  *
- * Output: fit-<outfit>-<silhouette|photo>-<rigid|fitted>.png (mannequin crops), fit-sheet.png
- * (rows = outfits; columns = silhouette rigid / fitted, photo rigid / fitted) and fit-zoom-*.png.
+ * Output: fit-<outfit>-<silhouette|photo>-<rigid|fitted|merged>.png (mannequin crops), fit-sheet.png
+ * (rows = outfits; columns = silhouette rigid / fitted / merged, photo rigid / fitted / merged),
+ * fit-zoom-*.png and fit-merge-timings.txt (the compositor's own timings).
  * With --debug-rigs it also writes rig-<name>.png per fitted garment: the cutout with the rig points
  * the app detected (read back from the closet it saved them to) drawn and labelled.
  * The photo is only read; it is never copied anywhere.
@@ -25,9 +27,11 @@ import {
   PHONE,
   drawRig,
   launchBrowser,
+  layeredPage,
   openTestId as openTestIdAt,
   rigidPage,
   startServer,
+  waitForMerged,
 } from './lib/harness.mjs';
 
 const ROOT = process.cwd();
@@ -281,13 +285,15 @@ async function setUpPhoto(page, file) {
   console.log(`photo set up: landmarks ${how}`);
 }
 
+const mergeTimings = [];
+
 async function shoot(page, mode, variant) {
   const files = {};
   for (const outfit of OUTFITS) {
     await openTestId(page, `/outfits/${outfitId(outfit.name)}`, 'screen-outfit-detail');
     for (const key of outfit.keys.filter((k) => FITTED.has(k))) {
       const id = itemId(key);
-      if (variant === 'fitted') {
+      if (variant !== 'rigid') {
         await page.getByTestId(`mannequin-fitted-${id}`).waitFor({ timeout: 30_000 });
         await page
           .getByTestId(`mannequin-image-${id}`)
@@ -297,7 +303,17 @@ async function shoot(page, mode, variant) {
       }
     }
     if (mode === 'photo') await page.getByTestId('outfit-detail-mannequin-backdrop').waitFor();
-    await page.waitForTimeout(700);
+    if (variant === 'merged') {
+      const t0 = Date.now();
+      const timing = await waitForMerged(page, 'outfit-detail-mannequin');
+      mergeTimings.push(
+        `${mode} ${outfit.name}: ` +
+          (timing
+            ? `merged after ${Date.now() - t0} ms of waiting; compositor ${JSON.stringify(timing)}`
+            : 'NO MERGED PICTURE (timed out)'),
+      );
+    }
+    await page.waitForTimeout(variant === 'merged' ? 900 : 700);
     const file = join(outDir, `fit-${outfit.name}-${mode}-${variant}.png`);
     await page.getByTestId('outfit-detail-mannequin').screenshot({ path: file });
     files[outfit.name] = file;
@@ -310,9 +326,14 @@ const shots = { silhouette: {}, photo: {} };
 let rigItems = [];
 try {
   // Silhouette: no photo in the profile.
-  for (const variant of ['rigid', 'fitted']) {
+  for (const variant of ['rigid', 'fitted', 'merged']) {
     const context = await browser.newContext(phone);
-    const page = variant === 'rigid' ? await rigidPage(context) : await context.newPage();
+    const page =
+      variant === 'rigid'
+        ? await rigidPage(context)
+        : variant === 'fitted'
+          ? await layeredPage(context)
+          : await context.newPage();
     await seed(page);
     shots.silhouette[variant] = await shoot(page, 'silhouette', variant);
     if (variant === 'fitted' && debugRigs) {
@@ -329,7 +350,9 @@ try {
     const page = await context.newPage();
     await seed(page);
     await setUpPhoto(page, photo);
-    shots.photo.fitted = await shoot(page, 'photo', 'fitted');
+    shots.photo.merged = await shoot(page, 'photo', 'merged');
+    const layered = await layeredPage(context);
+    shots.photo.fitted = await shoot(layered, 'photo', 'fitted');
     const rigid = await rigidPage(context);
     shots.photo.rigid = await shoot(rigid, 'photo', 'rigid');
     await context.close();
@@ -340,10 +363,12 @@ try {
   const columns = [
     ['silhouette', 'rigid'],
     ['silhouette', 'fitted'],
+    ['silhouette', 'merged'],
     ...(photo
       ? [
           ['photo', 'rigid'],
           ['photo', 'fitted'],
+          ['photo', 'merged'],
         ]
       : []),
   ];
@@ -353,7 +378,9 @@ try {
     deviceScaleFactor: 2,
   });
   const sp = await sheet.newPage();
-  const header = columns.map(([m, v]) => `<div class="h">${m} ${v}</div>`).join('');
+  const header = columns
+    .map(([m, v]) => `<div class="h">${m} ${v === 'merged' ? 'fitted + merged' : v}</div>`)
+    .join('');
   const rows = OUTFITS.map(
     (o) =>
       `<div class="label">${o.name}</div><div class="row">${columns
@@ -377,16 +404,21 @@ try {
   };
   const modes = photo ? ['silhouette', 'photo'] : ['silhouette'];
   for (const m of modes) {
-    await zoom(
-      `fit-zoom-shirt-sleeve-${m}.png`,
-      shots[m].fitted['shirt-trousers-loafers'],
-      [20, 160, 440, 440],
-    );
-    await zoom(
-      `fit-zoom-jeans-edge-${m}.png`,
-      shots[m].fitted['tee-jeans-sneakers'],
-      [60, 560, 360, 400],
-    );
+    for (const [v, suffix] of [
+      ['fitted', ''],
+      ['merged', '-merged'],
+    ]) {
+      await zoom(
+        `fit-zoom-shirt-sleeve-${m}${suffix}.png`,
+        shots[m][v]['shirt-trousers-loafers'],
+        [20, 160, 440, 440],
+      );
+      await zoom(
+        `fit-zoom-jeans-edge-${m}${suffix}.png`,
+        shots[m][v]['tee-jeans-sneakers'],
+        [60, 560, 360, 400],
+      );
+    }
   }
   if (debugRigs) {
     const seen = new Set();
@@ -404,6 +436,7 @@ try {
       });
     }
   }
+  writeFileSync(join(outDir, 'fit-merge-timings.txt'), mergeTimings.join('\n') + '\n');
   writeFileSync(join(outDir, 'fit-gallery.txt'), `built from ${dist}\nphoto: ${photo ?? 'none'}\n`);
   console.log(`Wrote the gallery to ${outDir} (fit-sheet.png, fit-zoom-*.png, per-outfit crops).`);
 } finally {

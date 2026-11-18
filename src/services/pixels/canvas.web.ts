@@ -1,4 +1,11 @@
-import { applyMaskAlpha, cropFromTrim, fitWithin, resizeMask, trimToAlpha } from '@/core/image';
+import {
+  applyMaskAlpha,
+  cropFromTrim,
+  fitWithin,
+  removeHangerFromRgba,
+  resizeMask,
+  trimToAlpha,
+} from '@/core/image';
 import type { CutoutCrop } from '@/core/model/types';
 
 const RAW_SVG_PREFIX = 'data:image/svg+xml;utf8,';
@@ -86,8 +93,9 @@ export interface MaskedCutout {
 
 /**
  * Applies a float mask (0..1, `maskW` x `maskH`, upscaled to the photo's size) as the image's
- * alpha channel, trims to the visible pixels (alpha > 16, 2% padding), scales the result down to
- * at most `CUTOUT_MAX_PX` and encodes a PNG. `undefined` when the mask leaves nothing visible.
+ * alpha channel, clears a hanger's hook (`removeHanger`), trims to the visible pixels (alpha > 16,
+ * 2% padding), scales the result down to at most `CUTOUT_MAX_PX` and encodes a PNG. `undefined`
+ * when the mask leaves nothing visible.
  */
 export async function applyMaskToImage(
   img: HTMLImageElement,
@@ -101,6 +109,8 @@ export async function applyMaskToImage(
   ctx.drawImage(img, 0, 0, work.width, work.height);
   const pixels = ctx.getImageData(0, 0, work.width, work.height);
   applyMaskAlpha(pixels.data, resizeMask(mask, maskW, maskH, work.width, work.height));
+  // A hanger's hook (and neck) goes before trimming, so the cutout is cut to the garment itself.
+  removeHangerFromRgba(pixels.data, work.width, work.height);
   const rect = trimToAlpha(pixels.data, work.width, work.height);
   if (!rect) return undefined;
   ctx.putImageData(pixels, 0, 0);

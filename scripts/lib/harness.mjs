@@ -88,6 +88,42 @@ export async function rigidPage(context) {
   return page;
 }
 
+/**
+ * Pages that keep the layered Mannequin: merged pictures are JPEGs, and the compositor cannot
+ * encode them here, so it fails and the layered drawing stays (fitted images are PNGs and work).
+ */
+export async function layeredPage(context) {
+  const page = await context.newPage();
+  await page.addInitScript(() => {
+    const toBlob = HTMLCanvasElement.prototype.toBlob;
+    HTMLCanvasElement.prototype.toBlob = function (cb, type, quality) {
+      if (type === 'image/jpeg') return cb(null);
+      return toBlob.call(this, cb, type, quality);
+    };
+  });
+  return page;
+}
+
+/**
+ * Waits for the merged picture of the Mannequin `testId` (docs/TRY_ON.md §13); returns the
+ * compositor's own timings (User Timing "composite-*" measures, ms) or `undefined` on timeout.
+ */
+export async function waitForMerged(page, testId, timeout = 60_000) {
+  try {
+    await page.getByTestId(`${testId}-merged`).locator('img').waitFor({ timeout });
+  } catch {
+    return undefined;
+  }
+  return page.evaluate(() => {
+    const ms = (name) =>
+      performance.getEntriesByName(name).map((e) => ({
+        width: e.detail?.width,
+        ms: Math.round(e.duration),
+      }));
+    return { render: ms('composite-render'), pipeline: ms('composite-pipeline') };
+  });
+}
+
 /** Draws `png` (base64) with its rig points labelled; returns nothing, screenshots `#c` to `file`. */
 export async function drawRig(sheetPage, { png, points, title, file }) {
   await sheetPage.setViewportSize({ width: 700, height: 800 });

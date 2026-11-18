@@ -8,7 +8,7 @@ import { PixelRatio } from 'react-native';
 import type { FitEngine, FitJob } from './fitEngine';
 import { getFitEngine, getLazyRigDetector } from './fitServices';
 import { bodySignature, fitDensity, fitKey, fitSlotOf, rigSignature } from './fitKey';
-import { isFittable, rigIsCurrent, type LazyRigDetector } from './rigLifecycle';
+import { fitUsable, isFittable, rigIsCurrent, type LazyRigDetector } from './rigLifecycle';
 
 /** Default mannequin width (CSS px) used to pick the image resolution. */
 const DEFAULT_DISPLAY_WIDTH = 300;
@@ -34,7 +34,8 @@ export function rigFor(item: Item, detector: LazyRigDetector): GarmentRig | unde
 /**
  * Fitted garment images for a mannequin (docs/TRY_ON.md §12.5): for each fittable item with a rig,
  * the cutout warped to `body`, keyed by item id. Items that are not fittable, have no rig yet, or
- * are still being rendered are left out, so the Mannequin draws them rigidly; an item already
+ * are still being rendered are left out, so the Mannequin draws them rigidly (so are items whose
+ * detected rig is below `FIT_MIN_CONFIDENCE` and was never edited); an item already
  * fitted for another body keeps that image until the new one is ready. Items that have no rig get
  * one detected lazily and saved back to the closet.
  */
@@ -74,7 +75,7 @@ export function useFittedLayers(
     items.forEach((item, i) => {
       const slot = fitSlotOf(item);
       const rig = rigs[i];
-      if (slot && rig && isFittable(item)) {
+      if (slot && rig && fitUsable(rig) && isFittable(item)) {
         inputs.push({ itemId: item.id, rig, aspect: item.cutout.aspectRatio, slot });
       }
     });
@@ -90,6 +91,9 @@ export function useFittedLayers(
         out.push({ item, job: undefined });
         return;
       }
+      // A rig the detector was unsure about would warp the garment into something else: keep it
+      // rigid (the item offers "Check garment points").
+      if (!fitUsable(rig)) return;
       const layer = layered[item.id];
       const context = layer?.nestedIn.length
         ? `in:${layer.nestedIn

@@ -23,6 +23,7 @@ import { WoreTodayButton } from '../calendar/WoreTodayButton';
 import { subcategoryLabel } from '../closet/labels';
 import { itemDisplayName } from '../closet/list/filter';
 import { useClosetHydration } from '../closet/list/useClosetHydration';
+import { useComposite } from '../shared/composite/useComposite';
 import { useFittedLayers } from '../shared/fit/useFittedLayers';
 import { useBody } from '../shared/useBody';
 import { useImageUris } from '../shared/useImageUris';
@@ -182,6 +183,16 @@ function DetailBody({
     imageUris,
     displayWidth: MANNEQUIN_WIDTH,
   });
+  const composite = useComposite({
+    items: resolved.items,
+    body,
+    ...(backdrop ? { backdrop } : {}),
+    outfit,
+    imageUris,
+    fitted,
+    displayWidth: MANNEQUIN_WIDTH,
+    background: colors.surface,
+  });
   const name = outfitName(outfit, resolved.items);
   const note = outfitNote(resolved);
   const occasion =
@@ -216,6 +227,7 @@ function DetailBody({
             outfit={outfit}
             imageUris={imageUris}
             fitted={fitted}
+            {...(composite.uri ? { merged: composite.uri } : {})}
             interactive={false}
             testID="outfit-detail-mannequin"
           />

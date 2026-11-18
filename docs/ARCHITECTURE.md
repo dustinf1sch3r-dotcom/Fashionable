@@ -252,6 +252,11 @@ transferred buffers. The protocol in `inferenceWorker.ts` has request ids, stage
 timeouts and an idle shutdown (3 min) that frees the model; without `Worker`, or if it fails, the
 same steps run on the main thread. The model runs at 320 x 320 and the mask is scaled up to the photo. The WASM is 14.8 MB (about 20 MB with the model).
 
+#### After the mask: hanger removal
+
+`applyMaskToImage` clears a hanger's hook (and a hanger's narrow neck) from the alpha before
+trimming (`src/core/image/hanger.ts`, docs/TRY_ON.md §7). Pure code, no model.
+
 #### Cutout methods and how one is chosen (web)
 
 The model alone is unreliable on dark garments, on garments the colour of the floor and on

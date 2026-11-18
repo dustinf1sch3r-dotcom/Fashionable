@@ -28,6 +28,7 @@ import { FitBar } from '@/ui/mannequin/FitBar';
 import { Mannequin } from '@/ui/mannequin/Mannequin';
 import { TryOnToggle } from '@/ui/TryOnToggle';
 import { colors, radius, spacing, typography } from '@/ui/theme';
+import { useComposite } from '../shared/composite/useComposite';
 import { useFittedLayers } from '../shared/fit/useFittedLayers';
 import { useBody } from '../shared/useBody';
 import { CompactButton } from './CompactButton';
@@ -263,6 +264,18 @@ export function MixScreen() {
     imageUris: cutoutUris,
     displayWidth: mannequinWidth,
   });
+  // One merged picture while nothing is being fitted; the layers take over while a garment is selected.
+  const composite = useComposite({
+    items: selection,
+    body,
+    ...(backdrop ? { backdrop } : {}),
+    outfit: draft,
+    imageUris: cutoutUris,
+    fitted,
+    displayWidth: mannequinWidth,
+    background: colors.surfaceAlt,
+    enabled: garment === undefined,
+  });
 
   if (closetStatus === 'idle' || closetStatus === 'loading') {
     return (
@@ -308,6 +321,7 @@ export function MixScreen() {
                 outfit={draft}
                 imageUris={cutoutUris}
                 fitted={fitted}
+                {...(composite.uri ? { merged: composite.uri } : {})}
                 selectedItemId={garment?.id}
                 onSelectItem={(id) => {
                   setGarmentId(id);

@@ -179,7 +179,7 @@ config.**
 
 - ☑ **C1 Composite core.** `src/core/composite/` colour matching, shading (photo and silhouette),
   sharpness and grain, soft edges, contact shadows, `compositeOutfit`; tests on synthetic images.
-- ☐ **C2 Compositor and display.** Web compositor with caching, Mannequin shows the merged image
+- ☑ **C2 Compositor and display.** Web compositor with caching, Mannequin shows the merged image
   when ready (layered while loading or editing), wired into every outfit view, gallery and trial
   scripts output merged renders.
 

@@ -37,7 +37,7 @@ export interface Prep {
 const D = FIT_RULES.detect;
 const C = FIT_RULES.confidence;
 
-function labelComponents(
+export function labelComponents(
   px: Uint8Array,
   w: number,
   h: number,
