@@ -250,7 +250,9 @@ scaled into the photo.
 ### 11.6 Capture guide and privacy
 
 Guide before picking: stand straight, arms slightly away from the body, whole body from head to
-feet, plain background, fitted clothes, phone at waist height about 2–3 m away (use a timer or ask
+feet, wearing shorts and a fitted tank top (garments are drawn over the photo and the app does not
+remove what the person wears, so anything looser shows around the outfits), plain background, phone
+at waist height about 2–3 m away (use a timer or ask
 a friend). Copy states plainly that the photo never leaves the phone except in backups the user
 exports. "Delete my photo" removes the image and the profile field.
 

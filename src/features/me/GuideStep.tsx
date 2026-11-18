@@ -9,7 +9,11 @@ import { colors, iconSize, radius, spacing, typography } from '@/ui/theme';
 const TIPS: readonly { icon: IconName; text: string }[] = [
   { icon: 'body-outline', text: 'Stand straight, arms slightly away from your body.' },
   { icon: 'resize-outline', text: 'Get your whole body in, from head to feet.' },
-  { icon: 'contrast-outline', text: 'Plain background and fitted clothes work best.' },
+  {
+    icon: 'shirt-outline',
+    text: 'Wear shorts and a fitted tank top, so your own clothes do not show around the outfits.',
+  },
+  { icon: 'contrast-outline', text: 'Stand in front of a plain background.' },
   {
     icon: 'phone-portrait-outline',
     text: 'Hold the phone at waist height, 2 to 3 metres away. Use the timer or ask a friend.',
