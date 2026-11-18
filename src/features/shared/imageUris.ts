@@ -1,5 +1,5 @@
 import type { ID } from '@/core/model/types';
-import { createImageStore } from '@/services/images';
+import { getServices } from '@/services';
 
 export interface UriCache {
   /** The resolved URI if already known. */
@@ -42,6 +42,6 @@ let shared: UriCache | undefined;
 
 /** App-wide cache over the real image store (created on first use). */
 export function getSharedUriCache(): UriCache {
-  shared ??= createUriCache((id) => createImageStore().uri(id));
+  shared ??= createUriCache((id) => getServices().images.uri(id));
   return shared;
 }

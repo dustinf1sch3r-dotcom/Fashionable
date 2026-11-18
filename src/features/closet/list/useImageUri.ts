@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ID } from '@/core/model/types';
-import { getSharedUriCache, type UriCache } from './imageUris';
+import { getSharedUriCache, type UriCache } from '@/features/shared/imageUris';
 
 export type ImageUriState =
   | { status: 'loading'; uri: undefined }

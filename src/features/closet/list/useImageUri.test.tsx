@@ -1,5 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react-native';
-import { createUriCache } from './imageUris';
+import { createUriCache } from '@/features/shared/imageUris';
 import { useImageUri } from './useImageUri';
 
 describe('createUriCache', () => {
