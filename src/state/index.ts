@@ -1,5 +1,5 @@
 import { useStore } from 'zustand';
-import { createServices, type Services } from '@/services';
+import { getServices, type Services } from '@/services';
 import { createClosetStore, type ClosetState, type ClosetStore } from './closetStore';
 import { createOutfitStore, type OutfitState, type OutfitStore } from './outfitStore';
 import { createProfileStore, type ProfileState, type ProfileStore } from './profileStore';
@@ -31,7 +31,7 @@ let singleton: Stores | undefined;
 
 /** The app's stores, created on first use from the real services. */
 export function getStores(): Stores {
-  singleton ??= createStores(createServices());
+  singleton ??= createStores(getServices());
   return singleton;
 }
 

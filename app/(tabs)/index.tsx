@@ -1,5 +1,3 @@
-import { Placeholder } from '@/ui/Placeholder';
+import { ClosetScreen } from '@/features/closet/list/ClosetScreen';
 
-export default function ClosetScreen() {
-  return <Placeholder title="Closet" testID="screen-closet" />;
-}
+export default ClosetScreen;

@@ -28,3 +28,20 @@ export interface KeyValueStore {
   set(key: string, value: string): Promise<void>;
   remove(key: string): Promise<void>;
 }
+
+export interface PixelData {
+  width: number;
+  height: number;
+  /** Row-major RGBA, 4 bytes per pixel. */
+  rgba: Uint8ClampedArray;
+}
+
+/** Reads pixels for colour extraction and alpha trimming. */
+export interface PixelReader {
+  /**
+   * Decode `imageUri` scaled so its longest side is at most `maxSize`. Resolves `undefined` when
+   * this platform cannot read pixels (callers fall back to manual input); rejects when the image
+   * cannot be decoded.
+   */
+  read(imageUri: string, maxSize: number): Promise<PixelData | undefined>;
+}

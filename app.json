@@ -31,6 +31,13 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Fashionable needs your photos so you can add clothes to your closet.",
+          "cameraPermission": "Fashionable needs the camera so you can photograph your clothes."
+        }
       ]
     ],
     "experiments": {

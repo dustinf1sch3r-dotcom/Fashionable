@@ -41,7 +41,7 @@ All in `src/core`. Verify with `npm run check`.
 - ☑ **M1-3 Fixture closet.** ∥ `testing/fixtures.ts`: ~30 realistic items covering every slot,
   several colour families, all formality and warmth levels; deterministic `Clock`, `IdGenerator`
   and seeded RNG (`testing/rng.ts`, mulberry32). Depends on M1-1.
-- ☐ **M1-4 Scoring components.** `engine/weights.ts`, `engine/score/*.ts` for formality, pattern,
+- ☑ **M1-4 Scoring components.** `engine/weights.ts`, `engine/score/*.ts` for formality, pattern,
   coordination, freshness, occasion, weather (OUTFIT_ENGINE §4–6), and `engine/scoreOutfit.ts`
   combining them with renormalised weights. Depends on M1-1, M1-2, M1-3.
 - ☐ **M1-5 Generator.** `engine/generate.ts`: eligibility, core combos with sampling, beam,
@@ -64,11 +64,11 @@ All in `src/core`. Verify with `npm run check`.
 - ☑ **M2-3 UI kit.** ∥ `src/ui`: Button, Chip, ChipGroup, Card, TextField, SegmentedControl, Sheet,
   EmptyState, ColorDot, Rating5 (for formality/warmth). Theme tokens only, no hard-coded colours;
   44 pt minimum touch targets; a `/dev/ui` route listing every component for screenshot review.
-- ☐ **M2-4 Add item flow.** Camera or library pick (`expo-image-picker`) → preview → colour
+- ☑ **M2-4 Add item flow.** Camera or library pick (`expo-image-picker`) → preview → colour
   auto-detected (`PixelReader` + `palette.ts`) → tag form prefilled from taxonomy defaults → save.
   Background removal is stubbed with the no-op fallback here. Target: under 30 seconds per item.
   E2E: add an item from a fixture image, see it in the grid. Depends on M2-2, M2-3, M1-2.
-- ☐ **M2-5 Closet grid and item detail.** Category tabs, colour filter, search, sort; item detail
+- ☑ **M2-5 Closet grid and item detail.** Category tabs, colour filter, search, sort; item detail
   with edit, favourite, laundry/archive, delete with undo. Empty state that invites the first
   photo. Depends on M2-2, M2-3.
 - ☐ **M2-6 Backup.** Export closet (JSON + images) to a zip and import it back; Profile tab entry.

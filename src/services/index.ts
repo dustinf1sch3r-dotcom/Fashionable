@@ -1,17 +1,34 @@
 import { isFeedback, isItem, isOutfit, isProfile, isWearLog } from '@/core/model/validate';
 import type { Entity, Feedback, Item, Outfit, Profile, WearLog } from '@/core/model/types';
 import { createImageStore } from './images';
+import { createPixelReader } from './pixels';
 import { createAsyncStorageKv, createRepository } from './storage';
 import { createSystemClock, createIdGenerator } from './system';
 import {
+  createFakePixelReader,
   createFixedClock,
   createMemoryImageStore,
   createMemoryKv,
   createSequentialIds,
 } from './testing';
-import type { Clock, IdGenerator, ImageStore, KeyValueStore, Repository } from './types';
+import type {
+  Clock,
+  IdGenerator,
+  ImageStore,
+  KeyValueStore,
+  PixelReader,
+  Repository,
+} from './types';
 
-export type { Clock, IdGenerator, ImageStore, KeyValueStore, Repository } from './types';
+export type {
+  Clock,
+  IdGenerator,
+  ImageStore,
+  KeyValueStore,
+  PixelData,
+  PixelReader,
+  Repository,
+} from './types';
 
 export interface Services {
   items: Repository<Item>;
@@ -20,6 +37,7 @@ export interface Services {
   feedback: Repository<Feedback>;
   profile: Repository<Profile>;
   images: ImageStore;
+  pixels: PixelReader;
   clock: Clock;
   ids: IdGenerator;
 }
@@ -31,6 +49,7 @@ export interface ServicesOptions {
 function build(
   kv: KeyValueStore,
   images: ImageStore,
+  pixels: PixelReader,
   clock: Clock,
   ids: IdGenerator,
   onError: ServicesOptions['onStorageError'],
@@ -44,6 +63,7 @@ function build(
     feedback: repo<Feedback>('feedback', isFeedback),
     profile: repo<Profile>('profile', isProfile),
     images,
+    pixels,
     clock,
     ids,
   };
@@ -55,6 +75,7 @@ export function createServices(options: ServicesOptions = {}): Services {
   return build(
     createAsyncStorageKv(),
     createImageStore({ ids }),
+    createPixelReader(),
     createSystemClock(),
     ids,
     options.onStorageError,
@@ -69,8 +90,17 @@ export function createTestServices(
   return build(
     createMemoryKv(),
     createMemoryImageStore(ids),
+    createFakePixelReader(),
     overrides.clock ?? createFixedClock(),
     ids,
     undefined,
   );
+}
+
+let singleton: Services | undefined;
+
+/** The app's real services, created on first use. Features use this for images and pixels. */
+export function getServices(): Services {
+  singleton ??= createServices();
+  return singleton;
 }

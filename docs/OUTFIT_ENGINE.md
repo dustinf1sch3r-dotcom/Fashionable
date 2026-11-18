@@ -227,7 +227,8 @@ Rain (`precipProbability ≥ 0.5`): exclude items with `rainOk: false` from `sho
 Sun (`isSunny` and ≥ 20°C): `eyes` (sunglasses) and `head` gain +1 point when added.
 
 Weather score = `1 − |mean warmth of worn layers − target| / 2`, clamped; multiply by 0.5 if a
-required layer is missing.
+required layer is missing, and by 0.3 if any item breaks a hard rule for the band (emit
+`WEATHER_UNSUITED` per item; matters for manual outfits, since the generator filters those items).
 
 ## 7. Learning taste (no AI)
 

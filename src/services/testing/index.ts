@@ -5,3 +5,4 @@ export type { MemoryImageStore } from './memoryImageStore';
 export { createMemoryKv } from './memoryKv';
 export type { MemoryKv } from './memoryKv';
 export { createSequentialIds } from './sequentialIds';
+export { createFakePixelReader } from './fakePixelReader';
