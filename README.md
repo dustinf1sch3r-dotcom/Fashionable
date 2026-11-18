@@ -3,8 +3,11 @@
 Photograph your clothes, build a digital closet, and get fun, wearable outfits from what you already
 own — previewed on a body silhouette.
 
-**Status:** groundwork. The app runs with five placeholder tabs; features are specified and
-ticketed but not built yet.
+**Status:** proof of concept, live at https://dustinf1sch3r-dotcom.github.io/Fashionable/ (open it
+on a phone and use Add to Home Screen). Closet with automatic background removal and touch-up,
+outfit ideas by occasion and weather, mix-and-match on a silhouette with fit adjustment, saved
+outfits, wear calendar, closet insights, and backup. Everything runs on the device; data stays in
+that browser until accounts and sync (M8) exist, so export a backup now and then.
 
 ## Documents
 
@@ -31,8 +34,9 @@ npm run e2e          # phone-viewport browser tests against dist/
 
 ## Open decisions (owner)
 
-1. **Where to host the web build** so it can be opened on phones (ticket M2-7): GitHub Pages,
-   Cloudflare Pages, Netlify, Vercel or Expo's EAS Hosting. All have free tiers; each needs an
-   account.
-2. **Supabase project** for sign-in and sync (milestone M8).
+1. **Real-device pass** (roadmap F3): try it on an iPhone and an Android phone and report what feels
+   slow or wrong.
+2. **Supabase project** for sign-in and sync between devices and friends (milestone M8).
 3. **Apple Developer and Google Play accounts** for store builds (milestone M9).
+4. **Before selling:** the pre-sale checklist in docs/LICENSES.md (paid weather plan, hosting move
+   to Cloudflare, legal review, app-name check).
