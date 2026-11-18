@@ -11,6 +11,7 @@ import {
   fixtureFeedback,
   fixtureWearLogs,
 } from '../testing/fixtures';
+import { bigCloset } from '../testing/bigCloset';
 import { generateOutfits } from './generate';
 import type { GenerateInput } from './generate';
 import { buildTasteModel } from './taste';
@@ -426,29 +427,6 @@ describe('generateOutfits golden', () => {
 });
 
 describe('generateOutfits at scale', () => {
-  function bigCloset(n: number): Item[] {
-    const base = fixtureCloset();
-    const out: Item[] = [];
-    for (let i = 0; i < n; i++) {
-      const src = base[i % base.length] as Item;
-      const round = Math.floor(i / base.length);
-      const jitter = (round * 37) % 60;
-      out.push({
-        ...src,
-        id: `${src.id}-c${round}`,
-        colors: src.colors.map((c, k) => ({
-          ...c,
-          hex: `#${((parseInt(c.hex.slice(1), 16) + jitter * 4093 * (k + 1)) & 0xffffff)
-            .toString(16)
-            .padStart(6, '0')}`,
-        })),
-        images: { ...src.images },
-        cutout: { ...src.cutout },
-      });
-    }
-    return out;
-  }
-
   it('samples when the core product is large, deterministically', () => {
     const items = bigCloset(300);
     const input = {
@@ -465,28 +443,5 @@ describe('generateOutfits at scale', () => {
     expect(generateOutfits(input)).toEqual(a);
     const other = generateOutfits({ ...input, seed: 6 });
     expect(JSON.stringify(other.suggestions)).not.toBe(JSON.stringify(a.suggestions));
-  });
-
-  it('generates 5 outfits from 300 items in under 150 ms', () => {
-    const items = bigCloset(300);
-    const input = {
-      items,
-      wearLogs: fixtureWearLogs(),
-      feedback: [],
-      context: { date: DATE, occasion: 'casual' as const, weather: WEATHER_MILD },
-      count: 5,
-      seed: 7,
-    };
-    generateOutfits(input); // warm up the JIT
-    const times: number[] = [];
-    for (let i = 0; i < 5; i++) {
-      const t0 = performance.now();
-      const r = generateOutfits({ ...input, seed: 7 + i });
-      times.push(performance.now() - t0);
-      expect(r.suggestions).toHaveLength(5);
-    }
-    times.sort((a, b) => a - b);
-    process.stdout.write(`generate 300 items ms: ${times.map((t) => t.toFixed(1)).join(' ')}\n`);
-    expect(times[Math.floor(times.length / 2)]).toBeLessThan(150);
   });
 });

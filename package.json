@@ -57,9 +57,10 @@
     "format:check": "prettier --check .",
     "test": "jest",
     "e2e": "playwright test",
-    "check": "npm run typecheck && npm run lint && npm test",
+    "check": "npm run typecheck && npm run lint && npm test && npm run test:perf",
     "licenses": "node scripts/check-licenses.js",
-    "fit-gallery": "node scripts/fit-gallery.mjs"
+    "fit-gallery": "node scripts/fit-gallery.mjs",
+    "test:perf": "PERF_TESTS=1 jest --runInBand --testPathPatterns 'perf\\.test\\.ts$'"
   },
   "private": true
 }
