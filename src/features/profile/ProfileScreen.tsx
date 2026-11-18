@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Card } from '@/ui/Card';
 import { Screen } from '@/ui/Screen';
-import { colors, spacing, typography } from '@/ui/theme';
+import { colors, iconSize, spacing, typography } from '@/ui/theme';
 import { getStores, hydrateAll, useCloset, useOutfits, useProfile } from '@/state';
 import { LocationUnitsCard } from '@/features/weather';
 import { BackupCard } from './BackupCard';
@@ -12,6 +14,7 @@ import { useBackup } from './useBackup';
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 export function ProfileScreen() {
+  const router = useRouter();
   const backup = useBackup();
   const itemCount = useCloset((s) => s.items.length);
   const outfitCount = useOutfits((s) => s.outfits.length);
@@ -34,6 +37,24 @@ export function ProfileScreen() {
           <Text style={styles.body} testID="profile-outfit-count">
             {plural(outfitCount, 'outfit', 'outfits')}
           </Text>
+        </Card>
+        <Card
+          onPress={() => router.push('/insights')}
+          accessibilityLabel="Insights: what to buy next, duplicates and what you wear most"
+          testID="profile-insights"
+        >
+          <View style={styles.insightsRow}>
+            <Ionicons name="stats-chart-outline" size={iconSize.lg} color={colors.accent} />
+            <View style={styles.insightsText}>
+              <Text accessibilityRole="header" style={styles.heading}>
+                Insights
+              </Text>
+              <Text style={styles.muted}>
+                What to buy next, look-alikes and what you wear most.
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={iconSize.md} color={colors.textMuted} />
+          </View>
         </Card>
         <LocationUnitsCard />
         <BackupCard
@@ -59,4 +80,7 @@ const styles = StyleSheet.create({
   content: { gap: spacing.md, paddingBottom: spacing.xl },
   heading: { ...typography.heading, color: colors.text },
   body: { ...typography.body, color: colors.text },
+  muted: { ...typography.caption, color: colors.textMuted },
+  insightsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  insightsText: { flex: 1 },
 });

@@ -1,5 +1,5 @@
-import { Placeholder } from '@/ui/Placeholder';
+import { CalendarScreen } from '@/features/calendar';
 
-export default function CalendarScreen() {
-  return <Placeholder title="Calendar" testID="screen-calendar" />;
+export default function CalendarRoute() {
+  return <CalendarScreen />;
 }

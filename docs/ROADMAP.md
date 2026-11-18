@@ -109,17 +109,17 @@ All in `src/core`. Verify with `npm run check`.
 
 ## M6 — Calendar and wear history
 
-- ☐ **M6-1 Wear logging.** "Wore this today" from any outfit; quick log of loose items.
-- ☐ **M6-2 Calendar screen.** Month grid with outfit thumbnails, day detail, plan an outfit for a
+- ☑ **M6-1 Wear logging.** "Wore this today" from any outfit; quick log of loose items.
+- ☑ **M6-2 Calendar screen.** Month grid with outfit thumbnails, day detail, plan an outfit for a
   future date.
-- ☐ **M6-3 Stats.** Most / least worn, untouched for 90 days, colour and category breakdown, cost
+- ☑ **M6-3 Stats.** Most / least worn, untouched for 90 days, colour and category breakdown, cost
   per wear when prices exist.
 
 ## M7 — Gaps and insights
 
 - ☐ **M7-1 Core.** `gaps/archetypes.ts`, `findGaps`, `findOrphans`, duplicate detection
   (OUTFIT_ENGINE §8) with tests on the fixture closet.
-- ☐ **M7-2 Insights screen.** "Pieces that would unlock the most outfits" with example outfits on
+- ☑ **M7-2 Insights screen.** "Pieces that would unlock the most outfits" with example outfits on
   the mannequin (archetypes drawn as simple flat shapes), orphans, duplicates.
 
 ## M8 — Accounts and sync (friends and family)

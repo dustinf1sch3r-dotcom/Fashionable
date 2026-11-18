@@ -76,6 +76,7 @@ export function IdeasView({ onShowSaved }: IdeasViewProps) {
           pinnedIds={pinned}
           verdict={verdict}
           saved={Boolean(savedOutfit)}
+          {...(savedOutfit ? { savedOutfitId: savedOutfit.id } : {})}
           onTogglePin={togglePin}
           onOpenItem={(id) => router.push(`/closet/${id}`)}
           onRate={(v) => rate([...suggestion.itemIds].sort(), v)}

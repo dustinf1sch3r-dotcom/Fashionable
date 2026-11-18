@@ -14,6 +14,8 @@ import type { FitAdjust, ID, Item, Outfit } from '@/core/model/types';
 import { localISODate } from '@/core/weather';
 import { getBody } from '@/core/tryon/bodies';
 import { IDENTITY_FIT } from '@/core/tryon/place';
+import { useWoreToday } from '@/features/calendar/useWoreToday';
+import { sameItems } from '@/features/calendar/wearLogic';
 import { itemDisplayName } from '@/features/closet/list/filter';
 import { useClosetHydration } from '@/features/closet/list/useClosetHydration';
 import { useImageUris } from '@/features/shared/useImageUris';
@@ -95,6 +97,7 @@ export function MixScreen() {
   const [status, setStatus] = useState<string | undefined>();
   const [fitStatus, setFitStatus] = useState<string | undefined>();
   const [missing, setMissing] = useState(false);
+  const woreToday = useWoreToday('mix');
   const seed = useRef(getServices().clock.now().getTime());
 
   // Weather feeds the score; it is a no-op when no location has been saved.
@@ -332,6 +335,21 @@ export function MixScreen() {
               onPress={() => (editingId ? update() : setSaveOpen(true))}
               testID="mix-save"
             />
+            <CompactButton
+              label="Wore this today"
+              icon="checkmark-circle-outline"
+              disabled={selection.length === 0}
+              onPress={() => {
+                const ids = selectionIds(selection);
+                const saved = outfits.find((o) => o.id === editingId);
+                woreToday.request(
+                  ids,
+                  saved && sameItems(saved.itemIds, ids) ? saved.id : undefined,
+                );
+              }}
+              testID="wore-today-mix"
+            />
+            {woreToday.element}
             {status ? (
               <Text accessibilityLiveRegion="polite" style={styles.status} testID="mix-status">
                 {status}

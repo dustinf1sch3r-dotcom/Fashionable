@@ -6,6 +6,7 @@ import { Card } from '@/ui/Card';
 import { IconButton } from '@/ui/IconButton';
 import { Mannequin } from '@/ui/mannequin';
 import { colors, iconSize, radius, spacing, typography } from '@/ui/theme';
+import { WoreTodayButton } from '../calendar/WoreTodayButton';
 import { itemDisplayName } from '../closet/list/filter';
 import { ItemThumb } from './ItemThumb';
 import { topReasons } from './reasonText';
@@ -23,6 +24,8 @@ interface SuggestionCardProps {
   pinnedIds: readonly ID[];
   verdict: 'like' | 'dislike' | undefined;
   saved: boolean;
+  /** The saved outfit these pieces match, so a wear log can point at it. */
+  savedOutfitId?: ID;
   onTogglePin: (itemId: ID) => void;
   onOpenItem: (itemId: ID) => void;
   onRate: (verdict: 'like' | 'dislike') => void;
@@ -40,6 +43,7 @@ export function SuggestionCard({
   pinnedIds,
   verdict,
   saved,
+  savedOutfitId,
   onTogglePin,
   onOpenItem,
   onRate,
@@ -123,6 +127,11 @@ export function SuggestionCard({
           testID={`outfit-save-${index}`}
         />
       </View>
+      <WoreTodayButton
+        itemIds={suggestion.itemIds}
+        context={`suggestion-${index}`}
+        {...(savedOutfitId ? { outfitId: savedOutfitId } : {})}
+      />
       {verdict ? (
         <Text style={styles.thanks} testID={`outfit-feedback-${index}`}>
           {verdict === 'like'

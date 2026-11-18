@@ -48,6 +48,7 @@ export function ClosetScreen() {
   );
   const openItem = useCallback((id: string) => router.push(`/closet/${id}`), [router]);
   const addItem = useCallback(() => router.push('/closet/add'), [router]);
+  const openInsights = useCallback(() => router.push('/insights'), [router]);
 
   const counts = useMemo(() => countByStatus(items), [items]);
   const colorOptions = useMemo(
@@ -161,7 +162,16 @@ export function ClosetScreen() {
               {items.length === 1 ? '1 item' : `${items.length} items`}
             </Text>
           </View>
-          <Button label="Add" icon="add" onPress={addItem} testID="closet-add-button" />
+          <View style={styles.actions}>
+            <Button
+              label="Insights"
+              icon="stats-chart-outline"
+              variant="secondary"
+              onPress={openInsights}
+              testID="closet-insights-button"
+            />
+            <Button label="Add" icon="add" onPress={addItem} testID="closet-add-button" />
+          </View>
         </View>
         {body}
       </View>
@@ -185,6 +195,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   titles: { gap: 0 },
+  actions: { flexDirection: 'row', gap: spacing.sm },
   title: { ...typography.title, color: colors.text },
   count: { ...typography.caption, color: colors.textMuted },
   controls: { paddingBottom: spacing.md },

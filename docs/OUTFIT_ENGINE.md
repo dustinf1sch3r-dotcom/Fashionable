@@ -297,8 +297,9 @@ findOrphans(items, opts): OrphanReport[] // { itemId, goodOutfitCount, wouldHelp
   colour family: both neutral (denim counts as neutral) with the same colour name, or both accents
   with hues within 30°. Covered archetypes are skipped.
 - **Core archetypes** (base, bottom, one-piece, shoes): count core combos (base × bottom × shoes,
-  one-piece × shoes) scoring ≥ `GOOD_OUTFIT_THRESHOLD` (85, roughly the better 40% of the fixture
-  closet's combos) with and without it (occasion `any`, no weather, core pieces only, sampled with
+  one-piece × shoes) scoring ≥ `GOOD_OUTFIT_THRESHOLD` (80, roughly the better 60% of the fixture
+  closet's combos; 85 was tried and wrongly called classic all-neutral outfits such as navy tee +
+  dark jeans + brown loafers, ≈84 without weather or occasion, not good) with and without it (occasion `any`, no weather, core pieces only, sampled with
   a seed above the caps). The difference is `unlockedCount` (equal to the good combos containing
   the archetype). Top 5, ties broken by mean score of those combos, then `archetypeId`.
 - **Add-on archetypes** (outer, mid, belt, bag, accessories): `improvedCount` = good core combos

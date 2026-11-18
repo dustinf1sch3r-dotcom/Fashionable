@@ -27,7 +27,7 @@ export const ADD_ON_MIN_GAIN = 1.0;
 /** MMR trade-off between score and diversity. */
 export const MMR_LAMBDA = 0.7;
 /** §8: a core combo scoring at least this is a "good outfit". */
-export const GOOD_OUTFIT_THRESHOLD = 85;
+export const GOOD_OUTFIT_THRESHOLD = 80;
 export const DEFAULT_OUTFIT_COUNT = 5;
 /** Order in which the generator considers optional slots (§3 step 4). */
 export const DRESS_UP_SLOT_ORDER: readonly Slot[] = [

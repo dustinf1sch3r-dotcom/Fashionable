@@ -18,6 +18,7 @@ import { EmptyState } from '@/ui/EmptyState';
 import { IconButton } from '@/ui/IconButton';
 import { Mannequin } from '@/ui/mannequin';
 import { colors, iconSize, minTouch, radius, spacing, typography } from '@/ui/theme';
+import { WoreTodayButton } from '../calendar/WoreTodayButton';
 import { subcategoryLabel } from '../closet/labels';
 import { itemDisplayName } from '../closet/list/filter';
 import { useClosetHydration } from '../closet/list/useClosetHydration';
@@ -219,6 +220,12 @@ function DetailBody({
         size="lg"
         onPress={onOpenMix}
         testID="outfit-open-mix"
+      />
+      <WoreTodayButton
+        itemIds={resolved.items.map((i) => i.id)}
+        outfitId={outfit.id}
+        context="outfit"
+        variant="primary"
       />
 
       <View style={styles.pieces} testID="outfit-pieces">
