@@ -1,25 +1,48 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { CATEGORIES } from '@/core/model/taxonomy';
+import type { Category } from '@/core/model/types';
 import { Button } from '@/ui/Button';
-import { Card } from '@/ui/Card';
+import { Chip } from '@/ui/Chip';
 import { colors, spacing, typography } from '@/ui/theme';
-
-const TIPS = [
-  'Use a plain, contrasting background.',
-  'Lay the piece flat or hang it up.',
-  'Shoot straight on, from above.',
-];
+import { CATEGORY_LABELS } from '../labels';
+import { CaptureGuide } from './CaptureGuide';
 
 interface PickStepProps {
+  /** What the user says they are adding; pre-selects the category in the tag form. */
+  kind: Category;
+  onKindChange: (kind: Category) => void;
   onTakePhoto: () => void;
   onChoosePhoto: () => void;
   error: string | null;
 }
 
-export function PickStep({ onTakePhoto, onChoosePhoto, error }: PickStepProps) {
+export function PickStep({ kind, onKindChange, onTakePhoto, onChoosePhoto, error }: PickStepProps) {
   return (
     <View style={styles.wrap} testID="add-item-pick">
-      <Text style={styles.lead}>Snap it, confirm the colour, tap a few tags. Done.</Text>
+      <View style={styles.kinds}>
+        <Text style={styles.label}>What are you adding?</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chips}
+          accessibilityRole="radiogroup"
+          accessibilityLabel="What are you adding?"
+          testID="add-item-kind"
+        >
+          {CATEGORIES.map((category) => (
+            <Chip
+              key={category}
+              label={CATEGORY_LABELS[category]}
+              role="radio"
+              selected={kind === category}
+              onPress={() => onKindChange(category)}
+              testID={`add-item-kind-${category}`}
+            />
+          ))}
+        </ScrollView>
+      </View>
+      <CaptureGuide category={kind} />
       {error ? (
         <Text accessibilityRole="alert" style={styles.error} testID="add-item-error">
           {'⚠ '}
@@ -41,23 +64,14 @@ export function PickStep({ onTakePhoto, onChoosePhoto, error }: PickStepProps) {
         onPress={onChoosePhoto}
         testID="add-item-choose-photo"
       />
-      <Card testID="add-item-tips">
-        <Text style={styles.tipsTitle}>For the best result</Text>
-        {TIPS.map((tip) => (
-          <Text key={tip} style={styles.tip}>
-            {'• '}
-            {tip}
-          </Text>
-        ))}
-      </Card>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.md },
-  lead: { ...typography.body, color: colors.textMuted },
+  kinds: { gap: spacing.xs },
+  label: { ...typography.label, color: colors.text },
+  chips: { gap: spacing.sm, paddingRight: spacing.md },
   error: { ...typography.label, color: colors.danger },
-  tipsTitle: { ...typography.label, color: colors.text },
-  tip: { ...typography.body, color: colors.textMuted },
 });

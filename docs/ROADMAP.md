@@ -85,8 +85,8 @@ All in `src/core`. Verify with `npm run check`.
   lazy-loaded on first use with progress UI, cached for offline use, running off the main thread.
   Falls back cleanly when unsupported. Wire into the add-item flow; "re-cut" action for existing
   items. Use the models named in ARCHITECTURE.md; test on a real iPhone before calling it done.
-- ☐ **M3-3 Touch-up brush.** Erase / restore brush on the cutout for when automatic removal misses.
-- ☐ **M3-4 Capture guides.** Per-category ghost outlines and tips on the capture screen (TRY_ON §8).
+- ☑ **M3-3 Touch-up brush.** Erase / restore brush on the cutout for when automatic removal misses.
+- ☑ **M3-4 Capture guides.** Per-category ghost outlines and tips on the capture screen (TRY_ON §8).
 
 ## M4 — Mannequin and Mix
 
@@ -145,6 +145,17 @@ config.**
   commercial weather plan (R2), accessibility pass, crash reporting.
 
 ---
+
+## Follow-ups found during review
+
+- ☐ **F1 Record the cutout crop.** Store the crop rectangle and scale on `Item.cutout` when a cutout
+  is made (optional field, no migration), so touch-up can line the cutout up with the original
+  directly. Today it recovers the placement by colour matching (`core/image/align.ts`), which can
+  fail on low-contrast photos and briefly blocks the main thread. Keep alignment as the fallback
+  for older items.
+- ☐ **F2 Capture-guide shoe outline.** The shoe-pair guide reads as two blobs; draw a clearer pair.
+- ☐ **F3 Real-device pass.** On an iPhone and an Android phone: background-removal speed and memory,
+  touch gestures in Mix and touch-up, Add to Home Screen, safe-area insets, real Open-Meteo data.
 
 ## Suggested order and parallelism
 

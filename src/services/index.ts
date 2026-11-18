@@ -2,7 +2,7 @@ import { isFeedback, isItem, isOutfit, isProfile, isWearLog } from '@/core/model
 import type { Entity, Feedback, Item, Outfit, Profile, WearLog } from '@/core/model/types';
 import { createImageStore } from './images';
 import { createBackgroundRemover } from './cutout';
-import { createPixelReader } from './pixels';
+import { createPixelReader, createTouchupOpener } from './pixels';
 import { createAsyncStorageKv, createRepository } from './storage';
 import { createLocationService } from './location';
 import { createOpenMeteoProvider } from './weather';
@@ -11,6 +11,7 @@ import {
   createFakeBackgroundRemover,
   createFakeLocationService,
   createFakePixelReader,
+  createFakeTouchupOpener,
   createFakeWeatherProvider,
   createFixedClock,
   createMemoryImageStore,
@@ -26,6 +27,7 @@ import type {
   LocationService,
   PixelReader,
   Repository,
+  TouchupOpener,
   WeatherProvider,
 } from './types';
 
@@ -42,6 +44,10 @@ export type {
   PixelReader,
   PositionResult,
   Repository,
+  TouchupImage,
+  TouchupOpener,
+  TouchupResult,
+  TouchupSession,
   WeatherProvider,
 } from './types';
 
@@ -53,6 +59,7 @@ export interface Services {
   profile: Repository<Profile>;
   images: ImageStore;
   pixels: PixelReader;
+  touchup: TouchupOpener;
   cutout: BackgroundRemover;
   weather: WeatherProvider;
   location: LocationService;
@@ -68,6 +75,7 @@ function build(
   kv: KeyValueStore,
   images: ImageStore,
   pixels: PixelReader,
+  touchup: TouchupOpener,
   cutout: BackgroundRemover,
   weather: WeatherProvider,
   location: LocationService,
@@ -85,6 +93,7 @@ function build(
     profile: repo<Profile>('profile', isProfile),
     images,
     pixels,
+    touchup,
     cutout,
     weather,
     location,
@@ -102,6 +111,7 @@ export function createServices(options: ServicesOptions = {}): Services {
     kv,
     createImageStore({ ids }),
     createPixelReader(),
+    createTouchupOpener(),
     createBackgroundRemover(),
     createOpenMeteoProvider({ kv, clock }),
     createLocationService(),
@@ -120,6 +130,7 @@ export function createTestServices(
     createMemoryKv(),
     createMemoryImageStore(ids),
     createFakePixelReader(),
+    createFakeTouchupOpener(),
     createFakeBackgroundRemover(),
     createFakeWeatherProvider(),
     createFakeLocationService(),

@@ -1,5 +1,5 @@
 import { slotOf } from '@/core/model/slots';
-import type { Item } from '@/core/model/types';
+import type { Category, Item } from '@/core/model/types';
 import { colors } from '@/ui/theme';
 
 /**
@@ -116,4 +116,29 @@ export function garmentArtUri(item: Item, opts: ArtOptions = {}): string {
     `stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>`;
   // Raw markup after the prefix: react-native-web percent-encodes it itself.
   return `data:image/svg+xml;utf8,${svg}`;
+}
+
+const CATEGORY_SHAPE: Record<Category, string> = {
+  top: 'tee',
+  bottom: 'pants',
+  onepiece: 'dress',
+  outerwear: 'coat',
+  shoes: 'shoes',
+  legwear: 'pants',
+  belt: 'belt',
+  bag: 'bag',
+  headwear: 'head',
+  neckwear: 'neck',
+  jewelry: 'jewelry',
+  eyewear: 'eyes',
+  watch: 'wrist',
+};
+
+/**
+ * The flat shape for a whole category (a T-shirt for tops, a pair for shoes), as an SVG path in a
+ * 100 × 100 box plus the width / height it is drawn at. Used for the capture guide's outline.
+ */
+export function categoryOutline(category: Category): { path: string; aspect: number } {
+  const key = CATEGORY_SHAPE[category];
+  return { path: SHAPES[key] ?? SHAPES.fallback, aspect: ASPECTS[key] ?? 1 };
 }

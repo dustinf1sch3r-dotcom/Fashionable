@@ -10,10 +10,17 @@ interface PhotoPreviewProps {
   /** Show the plain photo instead of the cutout. */
   useOriginal: boolean;
   onToggleOriginal: () => void;
+  /** Opens the touch-up brush; leave out where it is not available. */
+  onTouchUp?: () => void;
 }
 
 /** The photo as it will be saved: the cutout on a checkerboard, or the original photo. */
-export function PhotoPreview({ photo, useOriginal, onToggleOriginal }: PhotoPreviewProps) {
+export function PhotoPreview({
+  photo,
+  useOriginal,
+  onToggleOriginal,
+  onTouchUp,
+}: PhotoPreviewProps) {
   const cut = useOriginal ? undefined : photo.cutout;
   return (
     <View style={styles.wrap}>
@@ -36,6 +43,16 @@ export function PhotoPreview({ photo, useOriginal, onToggleOriginal }: PhotoPrev
             useOriginal ? 'Use the photo with the background removed' : 'Use the original photo'
           }
           testID="add-item-use-original"
+        />
+      ) : null}
+      {onTouchUp ? (
+        <Button
+          label="Touch up"
+          icon="brush-outline"
+          variant="ghost"
+          onPress={onTouchUp}
+          accessibilityLabel="Touch up the cutout with a brush"
+          testID="touchup-open"
         />
       ) : null}
     </View>

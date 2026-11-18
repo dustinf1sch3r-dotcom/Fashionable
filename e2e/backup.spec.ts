@@ -11,6 +11,8 @@ async function addNavyTee(page: Page): Promise<void> {
   const chooser = page.waitForEvent('filechooser');
   await page.getByTestId('add-item-choose-photo').click();
   await (await chooser).setFiles('e2e/fixtures/navy-200x300.png');
+  // Background removal runs between picking and the form: allow for a cold model load on a busy CI machine.
+  await expect(page.getByTestId('add-item-form')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('add-item-colour-primary')).toContainText('Navy');
   await page.getByTestId('add-item-save').click();
   await expect(page.getByTestId('screen-closet')).toBeVisible();

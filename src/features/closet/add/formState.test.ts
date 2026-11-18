@@ -22,6 +22,19 @@ describe('initialFormState', () => {
   });
 });
 
+describe('initialFormState with a chosen category', () => {
+  it('starts on that category with its first type and defaults', () => {
+    const s = initialFormState([NAVY], 'shoes');
+    const [first] = subcategoriesOf('shoes');
+    expect([s.category, s.subcategory]).toEqual(['shoes', first]);
+    expect(s.formality).toBe(subcategoryDefaults('shoes', first)?.formality);
+  });
+
+  it('keeps the usual top / t-shirt start for a top', () => {
+    expect(initialFormState([NAVY], 'top')).toEqual(initialFormState([NAVY]));
+  });
+});
+
 describe('defaults re-application', () => {
   it('follows the subcategory while nothing was touched', () => {
     const s = run(initialFormState([NAVY]), { type: 'setSubcategory', subcategory: 'sweater' });

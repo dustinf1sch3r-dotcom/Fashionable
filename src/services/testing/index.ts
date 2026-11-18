@@ -9,3 +9,4 @@ export { createFakePixelReader } from './fakePixelReader';
 export { createFakeBackgroundRemover } from './fakeBackgroundRemover';
 export { createFakeWeatherProvider, createFakeLocationService } from './fakeWeather';
 export type { FakeWeatherProvider, FakeLocationService } from './fakeWeather';
+export { createFakeTouchupOpener } from './fakeTouchup';

@@ -236,10 +236,15 @@ puts `public/` into the export, so everything is served from our own site under 
 (`EXPO_BASE_URL`, e.g. `/Fashionable`). Both folders are gitignored. At run time `cutout.web.ts`
 loads `ort.wasm.min.js` with a script tag (nothing from onnxruntime is in the app bundle),
 downloads the WASM and model on the first cut-out only, and keeps them in the Cache API.
-GitHub Pages sends no COOP/COEP headers, so there is no SharedArrayBuffer: the runtime runs
-single-threaded on the main thread (`numThreads = 1`; inference blocks the UI for about 2 s on
-desktop, probably longer on a phone; a worker is a later improvement). The model runs at 320 x 320
-and the mask is scaled up to the photo. The WASM is 14.8 MB (about 20 MB with the model).
+GitHub Pages sends no COOP/COEP headers, so there is no SharedArrayBuffer: the runtime is
+single-threaded (`numThreads = 1`). Inference runs in a dedicated Web Worker, the hand-written
+static file `public/workers/cutout-worker.js` (it `importScripts` the ORT build from `/ort/`), so the
+UI keeps animating (longest frame gap on desktop: 2.0 s on the main thread, about 50 ms with the
+worker). The page downloads and caches the bytes and runs all image maths from `src/core/image`
+(one source of truth, no bundler for the worker); only the 1x3x320x320 tensors cross over as
+transferred buffers. The protocol in `inferenceWorker.ts` has request ids, stage events,
+timeouts and an idle shutdown (3 min) that frees the model; without `Worker`, or if it fails, the
+same steps run on the main thread. The model runs at 320 x 320 and the mask is scaled up to the photo. The WASM is 14.8 MB (about 20 MB with the model).
 
 Not allowed:
 

@@ -13,3 +13,17 @@ export {
   U2NET_SIZE,
   U2NET_STD,
 } from './u2net';
+export { ALIGN_MAX_LOSS, alignCutout, boxDownsample } from './align';
+export type { Alignment } from './align';
+export {
+  UNDO_LIMIT,
+  UndoStack,
+  applyPatch,
+  brushRadius,
+  capturePatch,
+  stampBrush,
+  strokePoints,
+  unionRect,
+  BRUSH_SPACING,
+} from './brush';
+export type { AlphaPatch, BrushMode, BrushSize, Point } from './brush';

@@ -53,6 +53,58 @@ export interface PixelReader {
   read(imageUri: string, maxSize: number): Promise<PixelData | undefined>;
 }
 
+/**
+ * An in-progress touch-up of a cutout (web only for now). It paints into the canvas it was opened
+ * with. Coordinates are photo pixels, see `width` / `height`.
+ */
+export interface TouchupSession {
+  /** Photo size in pixels; also the size of the canvas it draws into. */
+  readonly width: number;
+  readonly height: number;
+  /** False when the cutout could not be lined up with the photo: erasing works, restoring not. */
+  readonly canRestore: boolean;
+  /** Starts a stroke; everything until `endStroke` is one undo step. */
+  beginStroke(mode: 'erase' | 'restore'): void;
+  /** Continues the stroke to a new pointer position, stamping along the way. */
+  strokeTo(x: number, y: number, radius: number): void;
+  /** Ends the stroke; resolves to the number of undo steps now available. */
+  endStroke(): number;
+  /** Undoes the last stroke; resolves to the number of steps left. */
+  undo(): number;
+  /** Shows the photo faintly through the erased parts (helps when restoring). */
+  setGhost(on: boolean): void;
+  /** Trims, scales and encodes the result; `undefined` when nothing visible is left. */
+  finish(): Promise<TouchupResult | undefined>;
+  dispose(): void;
+}
+
+export interface TouchupImage {
+  /** Displayable URI (object URL on web). */
+  uri: string;
+  width: number;
+  height: number;
+}
+
+/** The touched-up cutout (PNG, trimmed to the garment) and its thumbnail (PNG). */
+export interface TouchupResult {
+  image: TouchupImage;
+  thumb: TouchupImage;
+}
+
+export interface TouchupOpener {
+  /** False where no touch-up editor exists yet (native); the buttons are then hidden. */
+  readonly available: boolean;
+  /**
+   * Loads the photo and the current cutout (`undefined`: start with the whole photo kept) and
+   * draws them into `canvas`. Rejects when an image cannot be decoded.
+   */
+  open(source: {
+    originalUri: string;
+    cutoutUri?: string;
+    canvas: HTMLCanvasElement;
+  }): Promise<TouchupSession>;
+}
+
 export interface CutoutResult {
   /** Displayable URI of the PNG cutout (an object URL on web, a file URI on native). */
   uri: string;

@@ -3,6 +3,7 @@ import type { InferenceSession } from 'onnxruntime-web';
 import { coverage, normalizeMinMax, softThreshold, toModelInput, U2NET_SIZE } from '@/core/image';
 import { applyMaskToImage, loadImage, readSquashed } from '../pixels/canvas.web';
 import type { BackgroundRemover, CutoutResult } from '../types';
+import { createInferenceWorker, type InferenceWorker, type WorkerLike } from './inferenceWorker';
 
 /**
  * Web background removal: U-2-Netp (Apache-2.0) run by onnxruntime-web (MIT) in WebAssembly.
@@ -13,8 +14,13 @@ import type { BackgroundRemover, CutoutResult } from '../types';
  * first time a photo is cut out. Downloads are kept in the browser's Cache API for later visits.
  *
  * Phone constraints: GitHub Pages cannot send COOP/COEP headers, so there is no SharedArrayBuffer
- * and the runtime is single-threaded (`numThreads = 1`, no proxy worker). The model runs at its
- * native 320 x 320 input and the mask is scaled up to the photo afterwards.
+ * and the runtime is single-threaded (`numThreads = 1`). The model runs at its native 320 x 320
+ * input and the mask is scaled up to the photo afterwards.
+ *
+ * Inference runs in a dedicated Web Worker (`public/workers/cutout-worker.js`) so the UI keeps
+ * animating. This file downloads/caches the bytes and does all image maths (src/core/image); the
+ * worker only owns the ONNX session. If Workers are missing or the worker fails, the same steps
+ * run on the main thread.
  */
 
 // Same-origin, under the sub-path the site is published at (GitHub Pages: /<repo>/).
@@ -23,6 +29,10 @@ const ORT_DIR = `${BASE}/ort/`;
 /** Version tags only change the cache key; the server ignores them. Bump with the pinned files. */
 const ORT_VERSION = '1.31.1';
 const MODEL_URL = `${BASE}/models/u2netp.onnx?v=309c8469`;
+const WORKER_URL = `${BASE}/workers/cutout-worker.js?v=1`;
+const IDLE_MS = 3 * 60_000;
+const INIT_TIMEOUT_MS = 60_000;
+const RUN_TIMEOUT_MS = 60_000;
 const CACHE_NAME = 'fashionable-cutout-v1';
 /** A mask covering less of the picture than this means the model found no garment. */
 const MIN_COVERAGE = 0.01;
@@ -132,13 +142,18 @@ async function fetchBytes(url: string, onFraction: Progress): Promise<ArrayBuffe
   return bytes;
 }
 
-interface Loaded {
-  ort: OrtModule;
-  session: InferenceSession;
+type Loaded =
+  | { kind: 'worker'; worker: InferenceWorker }
+  | { kind: 'main'; ort: OrtModule; session: InferenceSession };
+
+function workersSupported(): boolean {
+  return typeof Worker !== 'undefined';
 }
 
 function createRemover(): BackgroundRemover {
   let loading: Promise<Loaded> | undefined;
+  let workerBroken = !workersSupported();
+  let warm: Loaded | undefined;
   const listeners = new Set<Progress>();
   let latest = 0;
 
@@ -147,16 +162,51 @@ function createRemover(): BackgroundRemover {
     listeners.forEach((fn) => fn(latest));
   };
 
-  const load = async (): Promise<Loaded> => {
-    mark('cutout:prepare-start');
-    const ort = await loadOrt();
-    report(SCRIPT_END);
+  const worker = createInferenceWorker({
+    create: () => new Worker(WORKER_URL) as unknown as WorkerLike,
+    idleMs: IDLE_MS,
+    initTimeoutMs: INIT_TIMEOUT_MS,
+    runTimeoutMs: RUN_TIMEOUT_MS,
+    onStage: (stage) => mark(`cutout:worker-${stage}`),
+    onGone: (reason) => {
+      if (reason === 'failed') workerBroken = true;
+      // Once warm, the session dies with the worker: rebuild it (bytes come back from the Cache).
+      if (warm?.kind === 'worker') {
+        warm = undefined;
+        loading = undefined;
+        latest = 0;
+      }
+    },
+  });
+
+  const fetchModelAndWasm = async () => {
+    const script = `${ORT_DIR}ort.wasm.min.js?v=${ORT_VERSION}`;
     const [model, wasm] = await Promise.all([
       fetchBytes(MODEL_URL, (f) => report(SCRIPT_END + f * (MODEL_END - SCRIPT_END))),
       fetchBytes(`${ORT_DIR}ort-wasm-simd-threaded.wasm?v=${ORT_VERSION}`, (f) =>
         report(MODEL_END + f * (WASM_END - MODEL_END)),
       ),
     ]);
+    return { script, model, wasm };
+  };
+
+  const loadInWorker = async (): Promise<Loaded> => {
+    report(SCRIPT_END);
+    const { script, model, wasm } = await fetchModelAndWasm();
+    // Both buffers are transferred, not copied: the page lets go of them.
+    await worker.init({
+      ortScript: new URL(script, location.href).href,
+      ortDir: new URL(ORT_DIR, location.href).href,
+      model,
+      wasm,
+    });
+    return { kind: 'worker', worker };
+  };
+
+  const loadOnMainThread = async (): Promise<Loaded> => {
+    const ort = await loadOrt();
+    report(SCRIPT_END);
+    const { model, wasm } = await fetchModelAndWasm();
     ort.env.wasm.numThreads = 1;
     ort.env.wasm.proxy = false;
     ort.env.wasm.wasmPaths = ORT_DIR;
@@ -165,10 +215,27 @@ function createRemover(): BackgroundRemover {
       executionProviders: ['wasm'],
       graphOptimizationLevel: 'all',
     });
+    return { kind: 'main', ort, session };
+  };
+
+  const load = async (): Promise<Loaded> => {
+    mark('cutout:prepare-start');
+    let loaded: Loaded | undefined;
+    if (!workerBroken) {
+      try {
+        loaded = await loadInWorker();
+      } catch {
+        workerBroken = true; // fall back to the main thread for the rest of this visit
+        worker.dispose();
+        latest = 0;
+      }
+    }
+    loaded ??= await loadOnMainThread();
+    warm = loaded;
     report(1);
     mark('cutout:prepare-end');
     measure('cutout-prepare', 'cutout:prepare-start', 'cutout:prepare-end');
-    return { ort, session };
+    return loaded;
   };
 
   const prepare = async (onProgress?: Progress): Promise<Loaded> => {
@@ -188,6 +255,21 @@ function createRemover(): BackgroundRemover {
     }
   };
 
+  /** Raw mask (d0) for a 320 x 320 model input, from the worker or, failing that, this thread. */
+  const infer = async (input: Float32Array, loaded: Loaded): Promise<Float32Array> => {
+    const dims = [1, 3, U2NET_SIZE, U2NET_SIZE];
+    if (loaded.kind === 'worker') {
+      return loaded.worker.run(input, dims); // `input` is transferred, not copied
+    }
+    const { ort, session } = loaded;
+    const tensor = new ort.Tensor('float32', input, dims);
+    const outputs = await session.run({ [session.inputNames[0]]: tensor });
+    // The first output (d0) is the fused side map; the others are the intermediate stages.
+    const raw = outputs[session.outputNames[0]].data;
+    if (!(raw instanceof Float32Array)) throw new Error('Unexpected model output type');
+    return raw;
+  };
+
   return {
     available: typeof document !== 'undefined' && typeof WebAssembly !== 'undefined',
     async prepare(onProgress) {
@@ -195,16 +277,19 @@ function createRemover(): BackgroundRemover {
     },
     async remove(imageUri, onProgress): Promise<CutoutResult> {
       // Loading is 0..0.85 of the bar, inference and compositing the rest.
-      const { ort, session } = await prepare(onProgress && ((f) => onProgress(f * 0.85)));
+      const loaded = await prepare(onProgress && ((f) => onProgress(f * 0.85)));
       mark('cutout:infer-start');
       const img = await loadImage(imageUri);
-      const input = toModelInput(readSquashed(img, U2NET_SIZE, U2NET_SIZE));
-      const tensor = new ort.Tensor('float32', input, [1, 3, U2NET_SIZE, U2NET_SIZE]);
-      const outputs = await session.run({ [session.inputNames[0]]: tensor });
+      const makeInput = () => toModelInput(readSquashed(img, U2NET_SIZE, U2NET_SIZE));
+      let raw: Float32Array;
+      try {
+        raw = await infer(makeInput(), loaded);
+      } catch (error) {
+        if (loaded.kind !== 'worker' || !workerBroken) throw error;
+        // The worker died or timed out: redo this photo on the main thread.
+        raw = await infer(makeInput(), await prepare());
+      }
       onProgress?.(0.95);
-      // The first output (d0) is the fused side map; the others are the intermediate stages.
-      const raw = outputs[session.outputNames[0]].data;
-      if (!(raw instanceof Float32Array)) throw new Error('Unexpected model output type');
       const mask = normalizeMinMax(raw);
       if (coverage(mask) < MIN_COVERAGE) throw new Error('No garment found in the photo');
       const cut = await applyMaskToImage(img, softThreshold(mask), U2NET_SIZE, U2NET_SIZE);

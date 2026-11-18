@@ -69,8 +69,39 @@ async function fillAndSave(page: Page): Promise<void> {
   await expect(page.getByTestId('screen-closet')).toBeVisible();
 }
 
+/** Records the longest gap between animation frames once `window.__gapOn` is set. */
+async function trackFrameGaps(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __gapOn: boolean; __maxGap: number };
+    w.__gapOn = false;
+    w.__maxGap = 0;
+    let last = performance.now();
+    const tick = (t: number) => {
+      if (w.__gapOn) w.__maxGap = Math.max(w.__maxGap, t - last);
+      last = t;
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+
 test.describe('Background removal', () => {
   test.setTimeout(CUTOUT_TIMEOUT + 30_000);
+
+  test('keeps the UI responsive while a worker cuts out the photo', async ({ page }) => {
+    await trackFrameGaps(page);
+    await page.goto('/closet/add');
+    await page.evaluate(() => ((window as unknown as { __gapOn: boolean }).__gapOn = true));
+    await chooseFixture(page);
+    await expect(page.getByTestId('add-item-form')).toBeVisible({ timeout: CUTOUT_TIMEOUT });
+    const { maxGap, usedWorker } = await page.evaluate(() => ({
+      maxGap: (window as unknown as { __maxGap: number }).__maxGap,
+      usedWorker: performance.getEntriesByName('cutout:worker-infer-end').length > 0,
+    }));
+    // Inference ran off the main thread (not the fallback), so no frame was held up for long.
+    expect(usedWorker).toBe(true);
+    expect(maxGap).toBeLessThan(200);
+  });
 
   test('cuts the garment out of a photo and saves a transparent PNG', async ({ page }) => {
     await page.goto('/closet/add');

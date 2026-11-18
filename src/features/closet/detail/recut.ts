@@ -22,16 +22,29 @@ export async function recutItem(
 ): Promise<RecutResult> {
   const originalUri = await services.images.uri(item.images.originalId);
   const assets = await cutOut(services.cutout, originalUri);
+  return replaceCutoutImages(services.images, item, assets);
+}
+
+/**
+ * Stores `assets` as the item's cutout and thumbnail under new image ids and deletes the old ones
+ * afterwards (never the original, and never failing over clean-up). Returns the fields to apply
+ * to the item; rejects, with nothing deleted, when saving fails.
+ */
+export async function replaceCutoutImages(
+  images: ImageStore,
+  item: Item,
+  assets: CutoutAssets,
+): Promise<RecutResult> {
   const [cutoutId, thumbId] = await Promise.all([
-    services.images.save({ uri: assets.image.uri }),
-    services.images.save({ uri: assets.thumb.uri }),
+    images.save({ uri: assets.image.uri }),
+    images.save({ uri: assets.thumb.uri }),
   ]);
   // Never delete an image another item may share (the cutout of a no-alpha item is a copy, but
-  // stay defensive) and never fail the re-cut over clean-up.
+  // stay defensive) and never fail over clean-up.
   const stale = [item.images.cutoutId, item.images.thumbId].filter(
     (id) => id !== item.images.originalId,
   );
-  await Promise.all(stale.map((id) => services.images.remove(id).catch(() => undefined)));
+  await Promise.all(stale.map((id) => images.remove(id).catch(() => undefined)));
   return {
     images: { originalId: item.images.originalId, cutoutId, thumbId },
     cutout: { aspectRatio: assets.image.width / assets.image.height, hasAlpha: true },

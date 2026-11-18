@@ -2,7 +2,7 @@ import { useReducer, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { CATEGORIES, subcategoriesOf } from '@/core/model/taxonomy';
-import type { Pattern } from '@/core/model/types';
+import type { Category, Pattern } from '@/core/model/types';
 import { Button } from '@/ui/Button';
 import { ChipGroup } from '@/ui/ChipGroup';
 import { ColorDot } from '@/ui/ColorDot';
@@ -32,6 +32,10 @@ interface TagFormProps {
   error: string | null;
   onSave: (state: FormState) => void;
   onChangePhoto: () => void;
+  /** The category chosen on the capture step. */
+  initialCategory?: Category;
+  /** Opens the touch-up brush; leave out where it is not available. */
+  onTouchUp?: () => void;
 }
 
 export function TagForm({
@@ -42,8 +46,12 @@ export function TagForm({
   error,
   onSave,
   onChangePhoto,
+  initialCategory,
+  onTouchUp,
 }: TagFormProps) {
-  const [state, dispatch] = useReducer(formReducer, photo.colors, initialFormState);
+  const [state, dispatch] = useReducer(formReducer, photo.colors, (detected) =>
+    initialFormState(detected, initialCategory),
+  );
   const noColour = state.colors.length === 0;
   const [pickingColour, setPickingColour] = useState(noColour);
   const problems = validateForm(state);
@@ -62,6 +70,7 @@ export function TagForm({
             photo={photo}
             useOriginal={useOriginal}
             onToggleOriginal={onToggleOriginal}
+            onTouchUp={onTouchUp}
           />
           <View style={styles.previewInfo}>
             <Text style={styles.caption}>{noColour ? 'Colour' : 'Detected colour'}</Text>

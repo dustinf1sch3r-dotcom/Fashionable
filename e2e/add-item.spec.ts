@@ -6,6 +6,8 @@ async function chooseFixture(page: Page): Promise<void> {
   const chooser = page.waitForEvent('filechooser');
   await page.getByTestId('add-item-choose-photo').click();
   await (await chooser).setFiles(FIXTURE);
+  // Background removal runs between picking and the form: allow for a cold model load on a busy CI machine.
+  await expect(page.getByTestId('add-item-form')).toBeVisible({ timeout: 30_000 });
 }
 
 /** Raw JSON the app persisted for the items collection (AsyncStorage maps to localStorage). */

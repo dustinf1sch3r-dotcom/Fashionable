@@ -1,15 +1,18 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { getServices } from '@/services';
+import type { Category } from '@/core/model/types';
+import { getServices, type TouchupResult } from '@/services';
 import { getStores, hydrateAll } from '@/state';
 import { IconButton } from '@/ui/IconButton';
 import { colors, radius, spacing, typography } from '@/ui/theme';
+import { TouchupOverlay } from '../touchup/TouchupOverlay';
 import { PickStep } from './PickStep';
 import { TagForm } from './TagForm';
+import { loadLastKind, saveLastKind } from './lastKind';
 import { toNewItemInit, validateForm, type FormState } from './formState';
 import {
   cutOutPhoto,
@@ -37,6 +40,32 @@ export function AddItemScreen() {
   const [saving, setSaving] = useState(false);
   const [photoCount, setPhotoCount] = useState(0);
   const [useOriginal, setUseOriginal] = useState(false);
+  const [touchingUp, setTouchingUp] = useState(false);
+  // What the user says they are adding: optional, remembered from last time, top until it loads.
+  const [kind, setKind] = useState<Category>('top');
+  const chose = useRef(false);
+
+  useEffect(() => {
+    void loadLastKind().then((last) => {
+      if (last && !chose.current) setKind(last);
+    });
+  }, []);
+
+  const chooseKind = (next: Category) => {
+    chose.current = true;
+    setKind(next);
+    void saveLastKind(next);
+  };
+
+  const applyTouchup = (result: TouchupResult) => {
+    setStep((s) =>
+      s.kind === 'form'
+        ? { ...s, photo: { ...s.photo, cutout: { image: result.image, thumb: result.thumb } } }
+        : s,
+    );
+    setUseOriginal(false);
+    setTouchingUp(false);
+  };
 
   // Go back to the closet that opened this screen; after a direct page load there is no history.
   const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
@@ -128,6 +157,8 @@ export function AddItemScreen() {
       {step.kind === 'pick' ? (
         <View style={styles.body}>
           <PickStep
+            kind={kind}
+            onKindChange={chooseKind}
             onTakePhoto={() => void pick('camera')}
             onChoosePhoto={() => void pick('library')}
             error={pickError}
@@ -165,11 +196,21 @@ export function AddItemScreen() {
           onToggleOriginal={() => setUseOriginal((v) => !v)}
           saving={saving}
           error={saveError}
+          initialCategory={kind}
+          onTouchUp={getServices().touchup.available ? () => setTouchingUp(true) : undefined}
           onSave={(state) => void save(state)}
           onChangePhoto={() => {
             setSaveError(null);
             setStep({ kind: 'pick' });
           }}
+        />
+      ) : null}
+      {step.kind === 'form' && touchingUp ? (
+        <TouchupOverlay
+          originalUri={step.photo.original.uri}
+          cutoutUri={useOriginal ? undefined : step.photo.cutout?.image.uri}
+          onCancel={() => setTouchingUp(false)}
+          onDone={applyTouchup}
         />
       ) : null}
     </SafeAreaView>

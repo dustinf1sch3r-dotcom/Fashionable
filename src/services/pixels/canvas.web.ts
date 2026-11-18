@@ -10,14 +10,14 @@ export function loadImage(uri: string): Promise<HTMLImageElement> {
   });
 }
 
-function makeCanvas(width: number, height: number): HTMLCanvasElement {
+export function makeCanvas(width: number, height: number): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
   return canvas;
 }
 
-function context2d(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
+export function context2d(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) throw new Error('Canvas 2D is not available');
   ctx.imageSmoothingEnabled = true;

@@ -65,8 +65,12 @@ function applyDefaults(state: FormState): FormState {
   };
 }
 
-export function initialFormState(detected: readonly ColorSwatch[]): FormState {
-  return applyDefaults({
+/** `category` is what the user said they were adding on the capture step (default: a top). */
+export function initialFormState(
+  detected: readonly ColorSwatch[],
+  category: Category = INITIAL_CATEGORY,
+): FormState {
+  const base = applyDefaults({
     category: INITIAL_CATEGORY,
     subcategory: INITIAL_SUBCATEGORY,
     colors: [...detected],
@@ -78,6 +82,9 @@ export function initialFormState(detected: readonly ColorSwatch[]): FormState {
     name: '',
     touched: UNTOUCHED,
   });
+  return category === INITIAL_CATEGORY
+    ? base
+    : formReducer(base, { type: 'setCategory', category });
 }
 
 export function formReducer(state: FormState, action: FormAction): FormState {
