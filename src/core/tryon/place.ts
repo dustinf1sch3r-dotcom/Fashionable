@@ -1,6 +1,7 @@
 import { slotOf } from '../model/slots';
 import type { BodyTemplate, FitAdjust, Item, Outfit, Placement } from '../model/types';
 import { anchorFor, TUCKED_BASE_Z } from './anchors';
+import { POSE_RULES } from './pose';
 
 export const FIT_LIMITS = {
   scale: { min: 0.5, max: 2.0 },
@@ -42,10 +43,17 @@ function place(
   const adj = clampFit(override ?? item.fitAdjust ?? IDENTITY_FIT);
   const width = a.width * adj.scale;
   const height = width / item.cutout.aspectRatio;
+  let x = a.centerX - width / 2 + adj.dx + (o.extraDx ?? 0);
+  let y = a.topY + adj.dy;
+  if (slotOf(item) === 'shoes') {
+    // Shoes stay on the canvas even when the photo cut the feet off (ankles near the bottom).
+    x = clamp(x, 0, Math.max(0, POSE_RULES.canvasWidth - width));
+    y = clamp(y, 0, Math.max(0, POSE_RULES.canvasHeight - height));
+  }
   return {
     itemId: item.id,
-    x: a.centerX - width / 2 + adj.dx + (o.extraDx ?? 0),
-    y: a.topY + adj.dy,
+    x,
+    y,
     width,
     height,
     rotation: adj.rotation,

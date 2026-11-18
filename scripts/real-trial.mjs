@@ -370,9 +370,15 @@ async function seedOutfits(page) {
   );
 }
 
+/** True while a deep link to a dynamic route loads (see HOST FALLBACK in the report). */
+const nav = { deepLink: false };
+
 async function shoot(page, n, outfit, variant, rec) {
   const t0 = performance.now();
+  nav.deepLink = true;
   await open(page, `/outfits/trial-outfit-${slug(outfit.name)}`, 'screen-outfit-detail');
+  await page.waitForTimeout(1200); // let late hydration messages arrive while the flag is set
+  nav.deepLink = false;
   const fittedIds = [];
   for (const id of outfit.items) {
     if (report.garments[id].rig) fittedIds.push(report.garments[id].itemId);
@@ -415,13 +421,21 @@ try {
       const ctx = await browser.newContext(phone);
       const page = await ctx.newPage();
       rec.console = [];
+      rec.hostFallback = [];
+      // A deep link to a dynamic route (/outfits/<id>) is answered by 404.html with status 404 and
+      // hydrated against the wrong prerendered page (React #418): both are how GitHub Pages
+      // behaves, not app bugs, so they are listed apart while `nav.deepLink` is set.
+      const note = (line) => {
+        const list = nav.deepLink ? rec.hostFallback : rec.console;
+        if (list.length < 20) list.push(line);
+      };
       page.on('console', (m) => {
-        if (['error', 'warning'].includes(m.type()) && rec.console.length < 20)
-          rec.console.push(`${m.type()}: ${m.text().slice(0, 300)}`);
+        if (['error', 'warning'].includes(m.type())) note(`${m.type()}: ${m.text().slice(0, 300)}`);
       });
-      page.on('pageerror', (e) =>
-        rec.console.push(`pageerror: ${String(e.message).slice(0, 300)}`),
-      );
+      page.on('pageerror', (e) => note(`pageerror: ${String(e.message).slice(0, 300)}`));
+      page.on('response', (r) => {
+        if (r.status() >= 400) note(`HTTP ${r.status()}: ${r.url()}`);
+      });
       if (stored) await restoreCloset(page);
       await setUpPerson(page, people[i], n, rec);
       log(
@@ -521,6 +535,13 @@ for (const r of report.renders)
   );
 for (const p of report.people)
   if (p.console?.length) lines.push('', `CONSOLE P${p.n}`, ...p.console.map((c) => `  ${c}`));
+for (const p of report.people)
+  if (p.hostFallback?.length)
+    lines.push(
+      '',
+      `HOST FALLBACK P${p.n} (deep links to /outfits/<id>: 404.html, as on GitHub Pages)`,
+      ...p.hostFallback.map((c) => `  ${c}`),
+    );
 if (report.warnings.length) lines.push('', 'WARNINGS', ...report.warnings.map((w) => `  ${w}`));
 writeFileSync(join(outDir, 'trial-report.txt'), lines.join('\n') + '\n');
 log(`\nWrote ${outDir}/trial-sheet.png, trial-report.txt, trial-report.json`);

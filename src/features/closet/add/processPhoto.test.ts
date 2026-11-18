@@ -1,5 +1,6 @@
-import { createMemoryImageStore } from '@/services/testing';
-import { cutoutField, saveProcessedPhoto, type ProcessedPhoto } from './processPhoto';
+import { CutoutRejectedError, type BackgroundRemover } from '@/services';
+import { createFakePixelReader, createMemoryImageStore } from '@/services/testing';
+import { cutOutPhoto, cutoutField, saveProcessedPhoto, type ProcessedPhoto } from './processPhoto';
 
 const rendered = (uri: string, width: number, height: number) => ({ uri, width, height });
 
@@ -43,5 +44,34 @@ describe('saveProcessedPhoto crop', () => {
       aspectRatio: 0.5,
       hasAlpha: true,
     });
+  });
+});
+
+describe('cutOutPhoto when the background cannot be separated', () => {
+  const remover = (error: Error): BackgroundRemover => ({
+    available: true,
+    prepare: async () => undefined,
+    remove: async () => {
+      throw error;
+    },
+  });
+
+  it('keeps the photo and flags the rejection so the form can say so', async () => {
+    const out = await cutOutPhoto(
+      photo(false),
+      remover(new CutoutRejectedError(0.2)),
+      createFakePixelReader(),
+    );
+    expect(out.cutout).toBeUndefined();
+    expect(out.cutoutRejected).toBe(true);
+  });
+
+  it('stays silent for other failures', async () => {
+    const out = await cutOutPhoto(
+      photo(false),
+      remover(new Error('worker died')),
+      createFakePixelReader(),
+    );
+    expect(out.cutoutRejected).toBeUndefined();
   });
 });

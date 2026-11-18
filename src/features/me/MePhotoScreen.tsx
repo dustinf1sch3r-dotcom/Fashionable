@@ -9,6 +9,7 @@ import { getStores, useProfile } from '@/state';
 import { Button } from '@/ui/Button';
 import { IconButton } from '@/ui/IconButton';
 import { colors, spacing, typography } from '@/ui/theme';
+import { useIsClient } from '@/ui/useIsClient';
 import { useClosetHydration } from '../closet/list/useClosetHydration';
 import { useImageUris } from '../shared/useImageUris';
 import {
@@ -54,7 +55,10 @@ export function MePhotoScreen() {
 
   const leave = () => (router.canGoBack() ? router.back() : router.replace('/profile'));
   const services = getServices();
-  const supported = services.bodyCrop.available;
+  // Assume support until the browser says otherwise: the build machine has no canvas, and a
+  // different first render would break hydration (error #418).
+  const client = useIsClient();
+  const supported = !client || services.bodyCrop.available;
 
   const pick = async (source: 'camera' | 'library') => {
     if (step.kind !== 'guide') return;

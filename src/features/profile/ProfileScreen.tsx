@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/ui/Ionicons';
 import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Card } from '@/ui/Card';

@@ -61,6 +61,7 @@ export type {
   TouchupSession,
   WeatherProvider,
 } from './types';
+export { CutoutRejectedError } from './types';
 
 export interface Services {
   items: Repository<Item>;

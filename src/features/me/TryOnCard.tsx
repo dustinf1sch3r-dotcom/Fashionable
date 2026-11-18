@@ -7,6 +7,7 @@ import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
 import { Sheet } from '@/ui/Sheet';
 import { colors, radius, spacing, typography } from '@/ui/theme';
+import { useIsClient } from '@/ui/useIsClient';
 import { useImageUris } from '../shared/useImageUris';
 import { PRIVACY_LINE } from './GuideStep';
 import { deleteBodyPhoto } from './saveBodyPhoto';
@@ -20,7 +21,10 @@ export function TryOnCard() {
   const uris = useImageUris(photo ? [photo.imageId] : []);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
-  const supported = getServices().bodyCrop.available;
+  // Assume support until the browser says otherwise: the build machine has no canvas, and a
+  // different first render would break hydration (error #418).
+  const client = useIsClient();
+  const supported = !client || getServices().bodyCrop.available;
   const uri = photo ? uris[photo.imageId] : undefined;
 
   const remove = async () => {

@@ -121,6 +121,24 @@ export interface CutoutResult {
   height: number;
   /** Rectangle of the photo `remove` was given that the cutout covers, when the remover knows. */
   crop?: CutoutCrop;
+  /** Which method made the mask: the model (`u2net`) or plain-background keying (`key`). */
+  method?: 'u2net' | 'key';
+  /** Quality score 0..1 of the chosen mask (`scoreCutout`, src/core/image/key.ts). */
+  score?: number;
+}
+
+/**
+ * Thrown by `remove` when no method produced a usable mask: the photo's background could not be
+ * separated. Callers keep the original photo and suggest a plainer background or a touch-up.
+ */
+export class CutoutRejectedError extends Error {
+  /** Best score reached, when a mask was scored at all. */
+  readonly score: number | undefined;
+  constructor(score?: number) {
+    super("Couldn't separate the background");
+    this.name = 'CutoutRejectedError';
+    this.score = score;
+  }
 }
 
 /** Removes the background of a garment photo (docs/TRY_ON.md §7). */

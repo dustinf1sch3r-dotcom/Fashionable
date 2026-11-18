@@ -2,7 +2,12 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
 import { wholePhotoCrop } from '@/core/image';
 import type { ColorSwatch, CutoutCrop, Item } from '@/core/model/types';
-import type { BackgroundRemover, ImageStore, PixelReader } from '@/services';
+import {
+  CutoutRejectedError,
+  type BackgroundRemover,
+  type ImageStore,
+  type PixelReader,
+} from '@/services';
 import { summarizeColors } from './colors';
 
 /** Longest side of the stored original (docs/TRY_ON.md §7). */
@@ -37,6 +42,8 @@ export interface ProcessedPhoto {
   aspectRatio: number;
   /** Present when background removal worked: a transparent PNG trimmed to the garment. */
   cutout?: CutoutAssets;
+  /** True when background removal ran but could not separate the garment (plain photo kept). */
+  cutoutRejected?: boolean;
 }
 
 /** A transparent PNG cutout and its thumbnail (also PNG, so the alpha survives). */
@@ -125,8 +132,9 @@ export async function cutOutPhoto(
       // Keep the colours detected from the whole photo.
     }
     return { ...photo, colors, cutout };
-  } catch {
-    return photo;
+  } catch (error) {
+    // A photo the methods could not separate is not a failure to hide: the form says so.
+    return error instanceof CutoutRejectedError ? { ...photo, cutoutRejected: true } : photo;
   }
 }
 

@@ -78,6 +78,13 @@ width (`shoulderR.x − shoulderL.x`), `H` = hip width, `W` = waist width.
 | `head`                | `headTop.x`     | `headTop.y − 60`  | head width × 1.3              | 90  |
 | `eyes`                | `eyeLine.x`     | `eyeLine.y − 25`  | head width × 0.9              | 92  |
 
+Shoes when the photo cuts the feet off: if either foot landmark lies outside the 1000 x 2000
+canvas (or within 10 units of its bottom), pose detection extrapolated it and says nothing about
+where the shoes belong. The width then comes from the ankle gap (`(ankleR.x − ankleL.x) + 120`)
+instead of the foot gap, and `placeItem` clamps a shoe placement to the canvas (x within
+0..1000 − width, y within 0..2000 − height), so shoes are always drawn, over the lower legs if
+need be (`feetUsable`, `src/core/tryon/anchors.ts`).
+
 These are starting values; expect to tune them against real photos. Keep them in one table
 (`src/core/tryon/anchors.ts`) with a snapshot test so changes are deliberate.
 

@@ -1,8 +1,18 @@
 import type { InferenceSession } from 'onnxruntime-web';
 
-import { coverage, normalizeMinMax, softThreshold, toModelInput, U2NET_SIZE } from '@/core/image';
+import {
+  chooseCutout,
+  coverage,
+  fitWithin,
+  keyBackground,
+  normalizeMinMax,
+  resizeMask,
+  softThreshold,
+  toModelInput,
+  U2NET_SIZE,
+} from '@/core/image';
 import { applyMaskToImage, loadImage, readSquashed } from '../pixels/canvas.web';
-import type { BackgroundRemover, CutoutResult } from '../types';
+import { CutoutRejectedError, type BackgroundRemover, type CutoutResult } from '../types';
 import { createInferenceWorker, type InferenceWorker, type WorkerLike } from './inferenceWorker';
 
 /**
@@ -36,6 +46,8 @@ const RUN_TIMEOUT_MS = 60_000;
 const CACHE_NAME = 'fashionable-cutout-v1';
 /** A mask covering less of the picture than this means the model found no garment. */
 const MIN_COVERAGE = 0.01;
+/** Longest side of the grid plain-background keying and mask scoring run on. */
+const KEY_PX = 640;
 
 // Rough download shares of the progress bar: runtime script, model (4.6 MB), WASM (14.8 MB).
 const SCRIPT_END = 0.04;
@@ -277,23 +289,57 @@ function createRemover(): BackgroundRemover {
     },
     async remove(imageUri, onProgress): Promise<CutoutResult> {
       // Loading is 0..0.85 of the bar, inference and compositing the rest.
-      const loaded = await prepare(onProgress && ((f) => onProgress(f * 0.85)));
+      let loaded: Loaded | undefined;
+      let loadError: unknown;
+      try {
+        loaded = await prepare(onProgress && ((f) => onProgress(f * 0.85)));
+      } catch (error) {
+        loadError = error; // keying below can still work without the model
+      }
       mark('cutout:infer-start');
       const img = await loadImage(imageUri);
-      const makeInput = () => toModelInput(readSquashed(img, U2NET_SIZE, U2NET_SIZE));
-      let raw: Float32Array;
+      // Method 1: plain-background keying (only when the border is one flat colour). Cheap, and
+      // it does not depend on the model, so it also covers a model that fails to load or run.
+      const grid = fitWithin(img.naturalWidth, img.naturalHeight, KEY_PX);
+      const keyed = keyBackground(
+        readSquashed(img, grid.width, grid.height),
+        grid.width,
+        grid.height,
+      );
+      // Method 2: the U-2-Netp model.
+      let modelMask: Float32Array | undefined;
       try {
-        raw = await infer(makeInput(), loaded);
+        if (!loaded) throw loadError ?? new Error('The model is not loaded');
+        const ready = loaded;
+        const makeInput = () => toModelInput(readSquashed(img, U2NET_SIZE, U2NET_SIZE));
+        let raw: Float32Array;
+        try {
+          raw = await infer(makeInput(), ready);
+        } catch (error) {
+          if (ready.kind !== 'worker' || !workerBroken) throw error;
+          // The worker died or timed out: redo this photo on the main thread.
+          raw = await infer(makeInput(), await prepare());
+        }
+        const mask = normalizeMinMax(raw);
+        if (coverage(mask) >= MIN_COVERAGE) modelMask = softThreshold(mask);
       } catch (error) {
-        if (loaded.kind !== 'worker' || !workerBroken) throw error;
-        // The worker died or timed out: redo this photo on the main thread.
-        raw = await infer(makeInput(), await prepare());
+        if (!keyed) throw error; // nothing else to fall back on
       }
       onProgress?.(0.95);
-      const mask = normalizeMinMax(raw);
-      if (coverage(mask) < MIN_COVERAGE) throw new Error('No garment found in the photo');
-      const cut = await applyMaskToImage(img, softThreshold(mask), U2NET_SIZE, U2NET_SIZE);
-      if (!cut) throw new Error('No garment found in the photo');
+      // Judge both masks on the same grid and keep the better one, or give up.
+      const modelOnGrid = modelMask
+        ? resizeMask(modelMask, U2NET_SIZE, U2NET_SIZE, grid.width, grid.height)
+        : undefined;
+      const choice = chooseCutout(grid.width, grid.height, {
+        ...(modelOnGrid ? { u2net: modelOnGrid } : {}),
+        ...(keyed ? { key: keyed.alpha } : {}),
+      });
+      if (!choice) throw new CutoutRejectedError();
+      const cut =
+        choice.method === 'key' || !modelMask
+          ? await applyMaskToImage(img, choice.alpha, grid.width, grid.height)
+          : await applyMaskToImage(img, modelMask, U2NET_SIZE, U2NET_SIZE);
+      if (!cut) throw new CutoutRejectedError(choice.score.score);
       mark('cutout:infer-end');
       measure('cutout-infer', 'cutout:infer-start', 'cutout:infer-end');
       onProgress?.(1);
@@ -303,6 +349,8 @@ function createRemover(): BackgroundRemover {
         width: cut.width,
         height: cut.height,
         crop: cut.crop,
+        method: choice.method,
+        score: choice.score.score,
       };
     },
   };

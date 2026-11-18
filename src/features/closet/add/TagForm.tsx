@@ -9,7 +9,7 @@ import { ColorDot } from '@/ui/ColorDot';
 import { Rating5 } from '@/ui/Rating5';
 import { SectionHeader } from '@/ui/SectionHeader';
 import { TextField } from '@/ui/TextField';
-import { colors, spacing, typography } from '@/ui/theme';
+import { colors, radius, spacing, typography } from '@/ui/theme';
 import { CATEGORY_LABELS, COLOR_LABELS, PATTERN_LABELS, subcategoryLabel } from '../labels';
 import { ColorPicker } from './ColorPicker';
 import { PhotoPreview } from './PhotoPreview';
@@ -65,6 +65,12 @@ export function TagForm({
   return (
     <View style={styles.root} testID="add-item-form">
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        {photo.cutoutRejected && !photo.cutout ? (
+          <Text style={styles.rejected} accessibilityRole="alert" testID="add-item-cutout-hint">
+            Couldn’t separate the background — try a plainer background, or use Touch up to erase it
+            by hand.
+          </Text>
+        ) : null}
         <View style={styles.previewRow}>
           <PhotoPreview
             photo={photo}
@@ -224,6 +230,13 @@ const styles = StyleSheet.create({
   previewRow: { flexDirection: 'row', gap: spacing.md, alignItems: 'center' },
   previewInfo: { flex: 1, gap: spacing.xs, alignItems: 'flex-start' },
   more: { gap: spacing.xs },
+  rejected: {
+    ...typography.caption,
+    color: colors.warning,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.md,
+    padding: spacing.sm,
+  },
   caption: { ...typography.caption, color: colors.textMuted },
   muted: { ...typography.body, color: colors.textMuted },
   bar: {

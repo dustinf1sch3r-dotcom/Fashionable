@@ -18,8 +18,23 @@ export const FIXTURE_KIND: Record<string, RigKind> = {
   'dress-green': 'dress',
 };
 
+/** Decoded PNG pixels: row-major RGBA, 4 bytes per pixel. */
+export interface PngPixels {
+  width: number;
+  height: number;
+  rgba: Uint8ClampedArray;
+}
+
 /** Minimal PNG reader (8-bit, non-interlaced, any colour type) returning the alpha channel. */
 export function decodePngAlpha(bytes: Uint8Array): AlphaMask {
+  const { width, height, rgba } = decodePngPixels(bytes);
+  const alpha = new Uint8Array(width * height);
+  for (let i = 0; i < alpha.length; i++) alpha[i] = rgba[i * 4 + 3] as number;
+  return { width, height, alpha };
+}
+
+/** Minimal PNG reader (8-bit, non-interlaced, any colour type) returning RGBA pixels. */
+export function decodePngPixels(bytes: Uint8Array): PngPixels {
   const buf = Buffer.from(bytes);
   if (buf.readUInt32BE(0) !== 0x89504e47) throw new Error('not a PNG');
   let pos = 8;
@@ -75,15 +90,35 @@ export function decodePngAlpha(bytes: Uint8Array): AlphaMask {
       rows[y * stride + i] = v & 255;
     }
   }
-  const alpha = new Uint8Array(width * height);
+  const rgba = new Uint8ClampedArray(width * height * 4);
   for (let i = 0; i < width * height; i++) {
-    if (colorType === 6) alpha[i] = rows[i * 4 + 3] as number;
-    else if (colorType === 4) alpha[i] = rows[i * 2 + 1] as number;
-    else if (colorType === 3) alpha[i] = trns ? (trns[rows[i] as number] ?? 255) : 255;
-    else alpha[i] = 255;
+    let r: number;
+    let g: number;
+    let b: number;
+    let a = 255;
+    if (colorType === 6) {
+      [r, g, b, a] = [rows[i * 4], rows[i * 4 + 1], rows[i * 4 + 2], rows[i * 4 + 3]] as number[];
+    } else if (colorType === 4) {
+      r = g = b = rows[i * 2] as number;
+      a = rows[i * 2 + 1] as number;
+    } else if (colorType === 3) {
+      const k = rows[i] as number;
+      const pal = palette as Buffer;
+      [r, g, b] = [pal[k * 3], pal[k * 3 + 1], pal[k * 3 + 2]] as number[];
+      a = trns ? (trns[k] ?? 255) : 255;
+    } else if (colorType === 2) {
+      [r, g, b] = [rows[i * 3], rows[i * 3 + 1], rows[i * 3 + 2]] as number[];
+    } else {
+      r = g = b = rows[i] as number;
+    }
+    rgba.set([r, g, b, a], i * 4);
   }
-  void palette;
-  return { width, height, alpha };
+  return { width, height, rgba };
+}
+
+/** RGBA pixels of one fixture by name. */
+export function fixturePixels(name: string): PngPixels {
+  return decodePngPixels(readFileSync(join(FIXTURE_DIR, `${name}.png`)));
 }
 
 /** Alpha mask of one fixture by name (file name without `.png`). */

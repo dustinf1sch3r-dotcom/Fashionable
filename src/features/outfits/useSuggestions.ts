@@ -3,6 +3,7 @@ import { generateOutfits, type GenerateResult } from '@/core/engine/generate';
 import type { ID, Occasion } from '@/core/model/types';
 import { getStores, useCloset, useOutfits, useWear, useWeather } from '@/state';
 import { buildGenerateInput, todayISO } from './generateInput';
+import { styleSignature } from './styleSignature';
 
 interface Params {
   occasion: Occasion;
@@ -23,7 +24,7 @@ interface Done {
   result: GenerateResult;
   activeCount: number;
   /** The inputs the result was computed from; a mismatch with the live ones means "busy". */
-  items: unknown;
+  styleKey: string;
   weather: unknown;
   occasion: Occasion;
   pinKey: string;
@@ -36,7 +37,10 @@ interface Done {
  * at run time and deliberately not dependencies, so rating a card never reshuffles the list.
  */
 export function useSuggestions({ occasion, pinnedItemIds, seed }: Params): Suggestions {
-  const items = useCloset((s) => s.items);
+  // Regenerate only when something the engine reads changes. Saving garment points, fit tweaks or
+  // photos (which happens shortly after the screen opens) keeps this key, so cards never reshuffle;
+  // the items themselves are read from the store when the engine runs.
+  const styleKey = useCloset((s) => styleSignature(s.items));
   const closetStatus = useCloset((s) => s.status);
   const outfitStatus = useOutfits((s) => s.status);
   const wearStatus = useWear((s) => s.status);
@@ -51,6 +55,7 @@ export function useSuggestions({ occasion, pinnedItemIds, seed }: Params): Sugge
     if (!ready) return;
     const handle = setTimeout(() => {
       const stores = getStores();
+      const items = stores.closet.getState().items;
       const input = buildGenerateInput({
         items,
         wearLogs: stores.wear.getState().logs,
@@ -64,7 +69,7 @@ export function useSuggestions({ occasion, pinnedItemIds, seed }: Params): Sugge
       setDone({
         result: generateOutfits(input),
         activeCount: input.items.length,
-        items,
+        styleKey,
         weather,
         occasion,
         pinKey,
@@ -72,11 +77,11 @@ export function useSuggestions({ occasion, pinnedItemIds, seed }: Params): Sugge
       });
     }, 0);
     return () => clearTimeout(handle);
-  }, [ready, items, weather, occasion, pinKey, seed]);
+  }, [ready, styleKey, weather, occasion, pinKey, seed]);
 
   const current =
     done !== undefined &&
-    done.items === items &&
+    done.styleKey === styleKey &&
     done.weather === weather &&
     done.occasion === occasion &&
     done.pinKey === pinKey &&

@@ -35,3 +35,13 @@ export {
   wholePhotoCrop,
 } from './crop';
 export type { Size } from './crop';
+export {
+  KEY_RULES,
+  SCORE_RULES,
+  chooseCutout,
+  estimateBackground,
+  keyBackground,
+  maskAgreement,
+  scoreCutout,
+} from './key';
+export type { BackgroundModel, CutoutChoice, CutoutMethod, CutoutScore, KeyResult } from './key';

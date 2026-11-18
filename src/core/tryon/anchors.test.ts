@@ -1,4 +1,4 @@
-import { anchorFor, ANCHOR_RULES } from './anchors';
+import { anchorFor, feetUsable, ANCHOR_RULES } from './anchors';
 import { BODY_A } from './bodies';
 import type { Slot } from '../model/types';
 
@@ -72,5 +72,32 @@ describe('anchors', () => {
     expect(z('wrist')).toBeLessThan(z('bag'));
     expect(z('bag')).toBeLessThan(z('head'));
     expect(z('head')).toBeLessThan(z('eyes'));
+  });
+});
+
+describe('shoes when the photo cut the feet off', () => {
+  const l = BODY_A.landmarks;
+  // Pose detection extrapolated both feet far below the 2000-unit canvas.
+  const cutOff = {
+    ...BODY_A,
+    landmarks: {
+      ...l,
+      footL: { x: 380, y: 2300 },
+      footR: { x: 760, y: 2300 },
+    },
+  };
+
+  it('knows when the feet are usable', () => {
+    expect(feetUsable(l)).toBe(true);
+    expect(feetUsable(cutOff.landmarks)).toBe(false);
+    expect(feetUsable({ ...l, footL: { x: -40, y: 1900 } })).toBe(false);
+  });
+
+  it('places the shoes from the ankles, not from the extrapolated feet', () => {
+    const a = anchorFor('shoes', cutOff);
+    const ankleGap = l.ankleR.x - l.ankleL.x;
+    expect(a.topY).toBe(1830);
+    expect(a.width).toBe(ankleGap + 120);
+    expect(a.centerX).toBe(anchorFor('shoes', BODY_A).centerX);
   });
 });

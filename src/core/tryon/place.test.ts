@@ -156,3 +156,48 @@ describe('placeOutfit', () => {
     expect(one).toEqual([500]);
   });
 });
+
+describe('shoes stay on the canvas', () => {
+  const l = BODY_A.landmarks;
+  const lowAnkles = {
+    ...BODY_A,
+    landmarks: {
+      ...l,
+      ankleL: { x: l.ankleL.x, y: 1980 },
+      ankleR: { x: l.ankleR.x, y: 1980 },
+      footL: { x: l.footL.x, y: 2250 },
+      footR: { x: l.footR.x, y: 2250 },
+    },
+  };
+
+  it('moves the shoes up so they end on the canvas when the feet are below the photo', () => {
+    const p = placeItem(
+      item('boots', 'shoes', { cutout: { aspectRatio: 1.1, hasAlpha: true } }),
+      lowAnkles,
+    );
+    expect(p.y).toBeGreaterThanOrEqual(0);
+    expect(p.y + p.height).toBeLessThanOrEqual(2000 + 1e-6);
+    expect(p.width).toBeGreaterThan(0);
+    expect(p.x).toBeGreaterThanOrEqual(0);
+    expect(p.x + p.width).toBeLessThanOrEqual(1000 + 1e-6);
+    // Still drawn above the trouser hems.
+    expect(p.z).toBe(35);
+  });
+
+  it('draws them in an outfit: a placement exists for the shoes, inside the canvas', () => {
+    const ps = placeOutfit([item('jeans', 'bottom'), item('shoes', 'shoes')], lowAnkles);
+    const shoes = ps.find((q) => q.itemId === 'shoes');
+    expect(shoes).toBeDefined();
+    expect((shoes?.y ?? -1) + (shoes?.height ?? 0)).toBeLessThanOrEqual(2000 + 1e-6);
+  });
+
+  it('keeps a normal body exactly as before', () => {
+    const p = placeItem(item('shoes', 'shoes'), BODY_A);
+    expect(p.y).toBe(1830);
+  });
+
+  it('clamps sideways too (a wide pair at a large scale)', () => {
+    const p = placeItem(item('shoes', 'shoes'), BODY_A, fit({ dx: 400, scale: 2 }));
+    expect(p.x + p.width).toBeLessThanOrEqual(1000 + 1e-6);
+  });
+});

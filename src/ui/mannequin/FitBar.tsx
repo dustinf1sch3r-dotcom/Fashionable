@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/ui/Ionicons';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import type { FitAdjust } from '@/core/model/types';
 import { Button } from '@/ui/Button';

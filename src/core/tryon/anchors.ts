@@ -1,5 +1,6 @@
 import type { BodyLandmarks, BodyTemplate, Slot } from '../model/types';
 import { bodyCenterX, headWidth, hipWidth, shoulderWidth, waistWidth } from './bodies';
+import { POSE_RULES } from './pose';
 
 export interface Anchor {
   centerX: number;
@@ -34,10 +35,25 @@ export const ANCHOR_RULES = {
   eyes: { z: 92, topOffset: -25, widthMul: 0.9 }, // eyeLine.x / eyeLine.y, head width
 } as const;
 
+/** Feet closer than this to the canvas bottom (or outside it) count as missing: use the ankles. */
+export const FEET_MARGIN = 10;
+
 /** Z of the `base` layer when the outfit is tucked: under `bottom` (TRY_ON §4). */
 export const TUCKED_BASE_Z = 25;
 
 const avg = (a: number, b: number): number => (a + b) / 2;
+
+/**
+ * Whether the foot landmarks can be trusted for placing shoes. When the photo cuts the feet off,
+ * pose detection extrapolates them below the picture (or beside it); they then say nothing about
+ * where the shoes belong. Mannequin units (1000 x 2000 canvas).
+ */
+export function feetUsable(l: BodyLandmarks): boolean {
+  const { canvasWidth, canvasHeight } = POSE_RULES;
+  const inside = (p: { x: number; y: number }): boolean =>
+    p.x >= 0 && p.x <= canvasWidth && p.y >= 0 && p.y <= canvasHeight - FEET_MARGIN;
+  return inside(l.footL) && inside(l.footR) && l.footR.x > l.footL.x;
+}
 
 function anchorFromLandmarks(slot: Slot, l: BodyLandmarks): Anchor {
   const cx = bodyCenterX(l);
@@ -53,13 +69,16 @@ function anchorFromLandmarks(slot: Slot, l: BodyLandmarks): Anchor {
         width: H * R.legs.widthMul,
         z: R.legs.z,
       };
-    case 'shoes':
+    case 'shoes': {
+      // Feet that fall outside the canvas were extrapolated: place the shoes from the ankles.
+      const gap = feetUsable(l) ? l.footR.x - l.footL.x : Math.abs(l.ankleR.x - l.ankleL.x);
       return {
         centerX: cx,
         topY: avg(l.ankleL.y, l.ankleR.y) + R.shoes.topOffset,
-        width: (l.footR.x - l.footL.x) * R.shoes.widthMul + R.shoes.widthAdd,
+        width: gap * R.shoes.widthMul + R.shoes.widthAdd,
         z: R.shoes.z,
       };
+    }
     case 'bottom':
       return {
         centerX: cx,

@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/ui/Ionicons';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { CATEGORIES } from '@/core/model/taxonomy';
 import type { Category, ColorName, ItemStatus } from '@/core/model/types';

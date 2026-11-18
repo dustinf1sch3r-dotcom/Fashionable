@@ -252,6 +252,38 @@ transferred buffers. The protocol in `inferenceWorker.ts` has request ids, stage
 timeouts and an idle shutdown (3 min) that frees the model; without `Worker`, or if it fails, the
 same steps run on the main thread. The model runs at 320 x 320 and the mask is scaled up to the photo. The WASM is 14.8 MB (about 20 MB with the model).
 
+#### Cutout methods and how one is chosen (web)
+
+The model alone is unreliable on dark garments, on garments the colour of the floor and on
+anything odd, so `cutout.web.ts` runs two methods and keeps the better mask:
+
+1. **Plain-background keying** (`src/core/image/key.ts`, pure code, no model). The background
+   colour is estimated from a band along the image border (3% of the short side): the most common
+   Lab colour there (so a garment touching the edge does not fool it), its median and its spread
+   (75th percentile of the CIE76 distance). The border is "plain" when the spread is at most 12,
+   at least 30% of the border is within tolerance and it does not flip in and out of the
+   background colour more than 4% of its length (stripes, checks). Tolerance = 8 + 2.5 x spread
+   (max 40), so textured and gradient floors still key. A flood fill from the border over
+   background-coloured pixels removes the background; pixels next to the garment get a soft edge
+   from their distance to the tolerance. Background-coloured regions the fill cannot reach are
+   fully enclosed by garment: up to 2% of the garment area they stay (buttons, a printed patch),
+   larger ones (the gap between an arm and the body) are cleared; openings connected to the
+   border (between trouser legs) are background by construction. Pieces under 2% of the biggest
+   are dropped. It runs at 640 px on the long side and is only attempted when the border is plain.
+2. **U-2-Netp** as described above.
+
+`scoreCutout` (same file) judges a mask without knowing the answer: a plausible share of the frame
+(not erased, not the whole frame), the two biggest pieces holding the subject (one garment or a
+pair of shoes), crisp rather than blotchy alpha, a subject that does not fill the border ring,
+and the overlap (IoU) with the other method's mask. The score is the product of these terms, with
+agreement weighing in at half. `chooseCutout` takes the higher score (ties go to the model) and
+accepts it from 0.5 (`SCORE_RULES.accept`). The result carries `method` (`'u2net' | 'key'`) and
+`score`. If neither passes, `remove` rejects with `CutoutRejectedError`: the item keeps the
+original photo with `hasAlpha: false`, the add form says "Couldn't separate the background - try
+a plainer background", and "Touch up" is offered. Real examples that motivated this: a dark
+garment on black (the model kept 14% of jeans and 4% of a dress, so no rig could be found), where
+keying is exact.
+
 Not allowed:
 
 - `@imgly/background-removal` — AGPL-3.0.
@@ -260,6 +292,22 @@ Not allowed:
 - `Xenova/modnet` — licence is fine, but it only handles portraits of people.
 
 Native options need an Expo **development build**; none work in Expo Go.
+
+## Static web export: hydration and 404s
+
+- Anything whose value differs between the build machine and the browser must not be read during
+  render. The icon font is loaded only in the browser, so `@expo/vector-icons` rendered an empty
+  glyph in the prerendered HTML but, with the font cached, a glyph on the first client render
+  (React error #418, race-dependent, on every page with a visible icon). Use `@/ui/Ionicons` (a
+  drop-in that draws an empty box until the page has hydrated) instead of importing from
+  `@expo/vector-icons`, and `useIsClient()` (`src/ui/useIsClient.ts`) for service availability
+  (`services.bodyCrop.available`...): assume supported until the client says otherwise.
+- `e2e/console.spec.ts` fails on any console error, page error or 4xx on the tabs and the Me flow.
+- A deep link or reload on a dynamic route (`/outfits/<id>`, `/closet/<id>`, `/calendar/<date>`)
+  gets `404.html` with HTTP status 404 on GitHub Pages (the ids are not known at build time) and
+  is hydrated against the wrong prerendered page, which logs #418 once. The app works; in-app
+  navigation never hits the server. Removing it would need query-string routes
+  (`/outfits/detail?id=`); not done.
 
 ## Weather
 
