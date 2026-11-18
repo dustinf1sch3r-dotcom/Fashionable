@@ -27,3 +27,11 @@ export {
   BRUSH_SPACING,
 } from './brush';
 export type { AlphaPatch, BrushMode, BrushSize, Point } from './brush';
+export {
+  cropFromTrim,
+  cropToWork,
+  cutoutToOriginal,
+  originalToCutout,
+  wholePhotoCrop,
+} from './crop';
+export type { Size } from './crop';

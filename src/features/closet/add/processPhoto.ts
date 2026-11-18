@@ -1,6 +1,7 @@
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
-import type { ColorSwatch, Item } from '@/core/model/types';
+import { wholePhotoCrop } from '@/core/image';
+import type { ColorSwatch, CutoutCrop, Item } from '@/core/model/types';
 import type { BackgroundRemover, ImageStore, PixelReader } from '@/services';
 import { summarizeColors } from './colors';
 
@@ -42,6 +43,8 @@ export interface ProcessedPhoto {
 export interface CutoutAssets {
   image: Rendered;
   thumb: Rendered;
+  /** Where the cutout sits in the original photo (`Item.cutout.crop`), when known. */
+  crop?: CutoutCrop;
 }
 
 async function downscale(
@@ -98,7 +101,7 @@ export async function cutOutImage(
   if (!result.hasAlpha) throw new Error('The remover returned no transparency');
   const image: Rendered = { uri: result.uri, width: result.width, height: result.height };
   const thumb = await downscale(image.uri, image, THUMB_MAX_PX, 1, SaveFormat.PNG);
-  return { image, thumb };
+  return { image, thumb, crop: result.crop };
 }
 
 /**
@@ -146,7 +149,16 @@ export async function saveProcessedPhoto(
   return {
     images: { originalId, cutoutId, thumbId },
     cutout: cut
-      ? { aspectRatio: cut.image.width / cut.image.height, hasAlpha: true }
-      : { aspectRatio: photo.aspectRatio, hasAlpha: false },
+      ? cutoutField(cut.image, true, cut.crop)
+      : cutoutField(photo.original, false, wholePhotoCrop(photo.original)),
   };
+}
+
+/** The `Item.cutout` field for a stored cutout image; `crop` is left out when unknown. */
+export function cutoutField(
+  image: { width: number; height: number },
+  hasAlpha: boolean,
+  crop?: CutoutCrop,
+): Item['cutout'] {
+  return { aspectRatio: image.width / image.height, hasAlpha, ...(crop ? { crop } : {}) };
 }

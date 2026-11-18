@@ -285,6 +285,12 @@ export function validateItem(input: unknown): ValidationResult<Item> {
       else if (!isNum(v)) sub('aspectRatio', 'wrong_type');
       else if (v <= 0) sub('aspectRatio', 'out_of_range');
       reqBool(c, 'hasAlpha', sub);
+      nested(c, 'crop', sub, false, (r, sub2) => {
+        for (const k of ['x', 'y', 'width', 'height', 'scale']) num(r[k], k, sub2);
+        for (const k of ['width', 'height', 'scale']) {
+          if (isNum(r[k]) && r[k] <= 0) sub2(k, 'out_of_range');
+        }
+      });
     });
     nested(o, 'fitAdjust', add, false, fitAdjust);
   });

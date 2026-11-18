@@ -29,6 +29,22 @@ describe('replaceCutoutImages (touch-up save)', () => {
     await expect(images.uri(result.images.cutoutId)).resolves.toBeDefined();
   });
 
+  it('records the crop when the new cutout has one, and leaves it out otherwise', async () => {
+    const images = createMemoryImageStore();
+    const originalId = await images.save({ uri: 'blob:original' });
+    const oldCutout = await images.save({ uri: 'blob:cut' });
+    const crop = { x: 10, y: 20, width: 400, height: 800, scale: 0.5 };
+    const item = {
+      ...fixtureCloset()[0],
+      images: { originalId, cutoutId: oldCutout, thumbId: oldCutout },
+      cutout: { aspectRatio: 1, hasAlpha: true, crop: { ...crop, scale: 2 } },
+    };
+    const withCrop = await replaceCutoutImages(images, item, { ...assets, crop });
+    expect(withCrop.cutout).toEqual({ aspectRatio: 0.5, hasAlpha: true, crop });
+    const without = await replaceCutoutImages(images, item, assets);
+    expect(without.cutout).toEqual({ aspectRatio: 0.5, hasAlpha: true });
+  });
+
   it('keeps the old images when saving fails', async () => {
     const images = createMemoryImageStore();
     const originalId = await images.save({ uri: 'blob:original' });

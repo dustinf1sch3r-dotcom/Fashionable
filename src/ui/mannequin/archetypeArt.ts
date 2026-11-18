@@ -9,6 +9,14 @@ import { colors } from '@/ui/theme';
  * (the native Image component does not render SVG); real cutouts replace these.
  */
 
+/**
+ * A pair of shoes seen from the side, toes to the right: two sneaker profiles (heel collar, ankle
+ * opening, laced slope, rounded toe), one above and to the left of the other. Each has a thin
+ * slot cut through it (even-odd fill) for the sole line. Drawn for a box stretched to aspect 1.6.
+ */
+const PAIR_OF_SHOES =
+  'M 4 10 C 10 8 17 10 22 14 C 25 18 29 19 32 17 L 37 16 L 47 23 C 55 24 63 24 69 26 C 77 29 82 35 81 42 C 80.5 46 79 47 75 47 L 8 47 C 5 47 3 45 3 42 C 2 32 2 20 4 10 Z M 10 39 L 74 38.5 L 74.5 41.6 L 10 42.2 Z M 22 60 C 28 58 35 60 40 64 C 43 68 47 69 50 67 L 55 66 L 65 73 C 73 74 81 74 87 76 C 95 79 100 85 99 92 C 98.5 96 97 97 93 97 L 26 97 C 23 97 21 95 21 92 C 20 82 20 70 22 60 Z M 28 89 L 92 88.5 L 92.5 91.6 L 28 92.2 Z';
+
 const SHAPES: Record<string, string> = {
   tee: 'M28 4 L0 26 L12 44 L24 36 L24 98 L76 98 L76 36 L88 44 L100 26 L72 4 C64 14 36 14 28 4 Z',
   longSleeve:
@@ -20,10 +28,8 @@ const SHAPES: Record<string, string> = {
   dress: 'M32 0 L40 0 C44 8 56 8 60 0 L68 0 L66 30 L72 36 L96 100 H4 L28 36 L34 30 Z',
   jumpsuit:
     'M30 0 L38 0 C44 6 56 6 62 0 L70 0 L68 36 L74 46 L96 100 H56 L50 52 L44 100 H4 L26 46 L32 36 Z',
-  shoes:
-    'M2 30 C2 16 16 8 28 14 L44 34 C48 60 48 80 40 92 H6 C0 80 0 50 2 30 Z M98 30 C98 16 84 8 72 14 L56 34 C52 60 52 80 60 92 H94 C100 80 100 50 98 30 Z',
-  sneakers:
-    'M2 56 C2 40 10 34 22 34 L40 54 H48 V90 H4 C2 80 2 68 2 56 Z M98 56 C98 40 90 34 78 34 L60 54 H52 V90 H96 C98 80 98 68 98 56 Z',
+  shoes: PAIR_OF_SHOES,
+  sneakers: PAIR_OF_SHOES,
   boots:
     'M4 6 H34 V60 L46 70 C50 80 50 88 46 94 H4 Z M96 6 H66 V60 L54 70 C50 80 50 88 54 94 H96 Z',
   belt: 'M0 30 H100 V70 H0 Z M44 10 H56 V90 H44 Z',
@@ -74,7 +80,7 @@ const ASPECTS: Record<string, number> = {
   dress: 0.62,
   jumpsuit: 0.5,
   shoes: 1.6,
-  sneakers: 2,
+  sneakers: 1.6,
   boots: 1.2,
   belt: 2.2,
   bag: 1.1,

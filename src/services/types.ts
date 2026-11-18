@@ -1,4 +1,4 @@
-import type { Entity, ID, ISODate, Weather } from '@/core/model/types';
+import type { CutoutCrop, Entity, ID, ISODate, Weather } from '@/core/model/types';
 import type { GeocodeResult } from '@/core/weather';
 
 export type { Clock, IdGenerator } from '@/core/model/ports';
@@ -89,6 +89,8 @@ export interface TouchupImage {
 export interface TouchupResult {
   image: TouchupImage;
   thumb: TouchupImage;
+  /** Where the new cutout sits in the original photo; absent when the session had no photo space. */
+  crop?: CutoutCrop;
 }
 
 export interface TouchupOpener {
@@ -101,6 +103,8 @@ export interface TouchupOpener {
   open(source: {
     originalUri: string;
     cutoutUri?: string;
+    /** Where the cutout sits in the original (`Item.cutout.crop`); skips the colour search. */
+    crop?: CutoutCrop;
     canvas: HTMLCanvasElement;
   }): Promise<TouchupSession>;
 }
@@ -113,6 +117,8 @@ export interface CutoutResult {
   /** Pixel size of the cutout after trimming to the garment. */
   width: number;
   height: number;
+  /** Rectangle of the photo `remove` was given that the cutout covers, when the remover knows. */
+  crop?: CutoutCrop;
 }
 
 /** Removes the background of a garment photo (docs/TRY_ON.md §7). */

@@ -264,6 +264,27 @@ describe('validateItem', () => {
     expectBad(validateItem(mutate(item(), { purchasedOn: 5 })), 'purchasedOn', 'wrong_type');
   });
 
+  it('accepts a cutout without a crop and a valid crop', () => {
+    expect(validateItem(item()).ok).toBe(true);
+    const crop = { x: 0, y: 1.5, width: 100, height: 200, scale: 0.5 };
+    expect(
+      validateItem(mutate(item(), { cutout: { aspectRatio: 1, hasAlpha: true, crop } })).ok,
+    ).toBe(true);
+  });
+
+  it('checks the optional cutout crop', () => {
+    const crop = { x: 0, y: 0, width: 100, height: 200, scale: 0.5 };
+    const withCrop = (c: unknown) =>
+      validateItem(mutate(item(), { cutout: { aspectRatio: 1, hasAlpha: true, crop: c } }));
+    expectBad(withCrop('x'), 'cutout.crop', 'wrong_type');
+    expectBad(withCrop({ ...crop, x: undefined }), 'cutout.crop.x', 'missing');
+    expectBad(withCrop({ ...crop, y: Number.NaN }), 'cutout.crop.y', 'wrong_type');
+    expectBad(withCrop({ ...crop, width: 0 }), 'cutout.crop.width', 'out_of_range');
+    expectBad(withCrop({ ...crop, height: -1 }), 'cutout.crop.height', 'out_of_range');
+    expectBad(withCrop({ ...crop, scale: 0 }), 'cutout.crop.scale', 'out_of_range');
+    expectBad(withCrop({ ...crop, scale: Infinity }), 'cutout.crop.scale', 'wrong_type');
+  });
+
   it('checks images, cutout and fitAdjust', () => {
     expectBad(validateItem(mutate(item(), { images: 'x' })), 'images', 'wrong_type');
     expectBad(

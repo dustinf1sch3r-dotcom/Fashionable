@@ -60,7 +60,13 @@ export function AddItemScreen() {
   const applyTouchup = (result: TouchupResult) => {
     setStep((s) =>
       s.kind === 'form'
-        ? { ...s, photo: { ...s.photo, cutout: { image: result.image, thumb: result.thumb } } }
+        ? {
+            ...s,
+            photo: {
+              ...s.photo,
+              cutout: { image: result.image, thumb: result.thumb, crop: result.crop },
+            },
+          }
         : s,
     );
     setUseOriginal(false);
@@ -209,6 +215,7 @@ export function AddItemScreen() {
         <TouchupOverlay
           originalUri={step.photo.original.uri}
           cutoutUri={useOriginal ? undefined : step.photo.cutout?.image.uri}
+          crop={useOriginal ? undefined : step.photo.cutout?.crop}
           onCancel={() => setTouchingUp(false)}
           onDone={applyTouchup}
         />

@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { Item, ItemStatus } from '@/core/model/types';
+import type { CutoutCrop, Item, ItemStatus } from '@/core/model/types';
 import { getServices, type TouchupResult } from '@/services';
 import { useCloset } from '@/state';
 import { Button } from '@/ui/Button';
@@ -52,7 +52,9 @@ export function ItemDetailScreen({ id }: { id: string }) {
   };
 
   const [touchup, setTouchup] = useState<
-    { state: 'opening' } | { state: 'open'; originalUri: string; cutoutUri?: string } | null
+    | { state: 'opening' }
+    | { state: 'open'; originalUri: string; cutoutUri?: string; crop?: CutoutCrop }
+    | null
   >(null);
   const [touchupError, setTouchupError] = useState(false);
 
@@ -66,7 +68,7 @@ export function ItemDetailScreen({ id }: { id: string }) {
       const cutoutUri = current.cutout.hasAlpha
         ? await images.uri(current.images.cutoutId)
         : undefined;
-      setTouchup({ state: 'open', originalUri, cutoutUri });
+      setTouchup({ state: 'open', originalUri, cutoutUri, crop: current.cutout.crop });
     } catch {
       setTouchup(null);
       setTouchupError(true);
@@ -108,6 +110,7 @@ export function ItemDetailScreen({ id }: { id: string }) {
           <TouchupOverlay
             originalUri={touchup.originalUri}
             cutoutUri={touchup.cutoutUri}
+            crop={touchup.crop}
             onCancel={() => setTouchup(null)}
             onDone={(result) => void saveTouchup(item, result)}
           />

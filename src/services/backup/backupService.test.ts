@@ -21,7 +21,11 @@ async function seeded() {
       subcategory: 'tshirt',
       colors: [{ hex: '#112233', name: 'navy', share: 1 }],
       images: { originalId: 'o1', cutoutId: 'c1', thumbId: 't1' },
-      cutout: { aspectRatio: 1, hasAlpha: true },
+      cutout: {
+        aspectRatio: 1,
+        hasAlpha: true,
+        crop: { x: 12.5, y: 40, width: 300, height: 300, scale: 0.8 },
+      },
     },
     services.clock,
     services.ids,
@@ -87,6 +91,13 @@ describe('importBackup', () => {
       images: { written: 3, skipped: 0 },
     });
     expect(await fresh.items.list()).toEqual([item]);
+    expect((await fresh.items.list())[0].cutout.crop).toEqual({
+      x: 12.5,
+      y: 40,
+      width: 300,
+      height: 300,
+      scale: 0.8,
+    });
     expect((await fresh.items.listAll()).map((i) => i.id)).toContain('deleted-item');
     expect(await fresh.outfits.list()).toHaveLength(1);
     expect((await fresh.profile.list())[0].displayName).toBe('Sam');

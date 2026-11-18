@@ -10,7 +10,8 @@ import {
   type AlphaPatch,
   type Point,
 } from '@/core/image/brush';
-import { fitWithin, trimToAlpha, type CropRect } from '@/core/image';
+import { cropToWork, fitWithin, trimToAlpha, type CropRect } from '@/core/image';
+import type { CutoutCrop } from '@/core/model/types';
 import type { TouchupOpener, TouchupResult, TouchupSession } from '../types';
 import { CUTOUT_MAX_PX, canvasToPng, context2d, loadImage, makeCanvas } from './canvas.web';
 
@@ -59,6 +60,8 @@ class Session implements TouchupSession {
     photo: { canvas: HTMLCanvasElement; data: ImageData },
     alpha: Uint8ClampedArray,
     canvas: HTMLCanvasElement,
+    /** Factor from this session's pixels to original-photo pixels; undefined without photo space. */
+    private readonly toOriginal?: number,
   ) {
     this.alpha = alpha;
     this.photo = photo.canvas;
@@ -169,9 +172,21 @@ class Session implements TouchupSession {
       this.urls.push(u);
       return u;
     };
+    const k = this.toOriginal;
+    const crop: CutoutCrop | undefined =
+      k === undefined
+        ? undefined
+        : {
+            x: rect.x * k,
+            y: rect.y * k,
+            width: rect.width * k,
+            height: rect.height * k,
+            scale: size.width / (rect.width * k),
+          };
     return {
       image: { uri: url(imageBlob), ...size },
       thumb: { uri: url(thumbBlob), ...thumbSize },
+      ...(crop ? { crop } : {}),
     };
   }
 
@@ -184,32 +199,69 @@ class Session implements TouchupSession {
 async function open(source: {
   originalUri: string;
   cutoutUri?: string;
+  crop?: CutoutCrop;
   canvas: HTMLCanvasElement;
 }): Promise<TouchupSession> {
   const original = await loadImage(source.originalUri);
   const size = fitWithin(original.naturalWidth, original.naturalHeight, WORK_MAX_PX);
   const photo = readPixels(original, size.width, size.height);
   const total = size.width * size.height;
+  // Work pixels to original pixels (1 unless the stored original is larger than the work size).
+  const toOriginal = original.naturalWidth / size.width;
 
   if (!source.cutoutUri) {
     const alpha = new Uint8ClampedArray(total).fill(255);
-    return new Session(size.width, size.height, true, photo, alpha, source.canvas);
+    return new Session(size.width, size.height, true, photo, alpha, source.canvas, toOriginal);
   }
 
   const cutImg = await loadImage(source.cutoutUri);
   const cw = cutImg.naturalWidth;
   const ch = cutImg.naturalHeight;
+
+  /** Alpha of the cutout drawn into the photo's space at `at`. */
+  const placeAlpha = (at: CropRect): Uint8ClampedArray => {
+    const placed = makeCanvas(size.width, size.height);
+    const placedCtx = context2d(placed);
+    placedCtx.drawImage(cutImg, at.x, at.y, at.width, at.height);
+    const { data } = placedCtx.getImageData(0, 0, size.width, size.height);
+    const alpha = new Uint8ClampedArray(total);
+    for (let i = 0; i < total; i++) alpha[i] = data[i * 4 + 3];
+    return alpha;
+  };
+
+  if (source.crop) {
+    // The recorded crop says exactly where the cutout sits: no search, no waiting.
+    const at = cropToWork(
+      source.crop,
+      { width: original.naturalWidth, height: original.naturalHeight },
+      size,
+    );
+    return new Session(
+      size.width,
+      size.height,
+      true,
+      photo,
+      placeAlpha(at),
+      source.canvas,
+      toOriginal,
+    );
+  }
+
+  // Older items have no crop: find it by matching colours.
   const cut = readPixels(cutImg, cw, ch);
   await nextFrame();
   const found = alignCutout(photo.data.data, size.width, size.height, cut.data.data, cw, ch);
 
   if (found.loss <= ALIGN_MAX_LOSS) {
-    const placed = makeCanvas(size.width, size.height);
-    context2d(placed).drawImage(cutImg, found.x, found.y, found.width, found.height);
-    const { data } = context2d(placed).getImageData(0, 0, size.width, size.height);
-    const alpha = new Uint8ClampedArray(total);
-    for (let i = 0; i < total; i++) alpha[i] = data[i * 4 + 3];
-    return new Session(size.width, size.height, true, photo, alpha, source.canvas);
+    return new Session(
+      size.width,
+      size.height,
+      true,
+      photo,
+      placeAlpha(found),
+      source.canvas,
+      toOriginal,
+    );
   }
 
   // Cannot line the cutout up with the photo: work on the cutout alone, erase only.

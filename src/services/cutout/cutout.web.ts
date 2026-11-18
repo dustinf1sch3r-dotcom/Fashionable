@@ -302,6 +302,7 @@ function createRemover(): BackgroundRemover {
         hasAlpha: true,
         width: cut.width,
         height: cut.height,
+        crop: cut.crop,
       };
     },
   };

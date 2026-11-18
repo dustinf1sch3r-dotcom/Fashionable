@@ -1,6 +1,6 @@
 import type { Item } from '@/core/model/types';
 import type { BackgroundRemover, ImageStore } from '@/services';
-import { cutOutImage, type CutoutAssets } from '../add/processPhoto';
+import { cutOutImage, cutoutField, type CutoutAssets } from '../add/processPhoto';
 
 export interface RecutResult {
   images: Item['images'];
@@ -47,6 +47,6 @@ export async function replaceCutoutImages(
   await Promise.all(stale.map((id) => images.remove(id).catch(() => undefined)));
   return {
     images: { originalId: item.images.originalId, cutoutId, thumbId },
-    cutout: { aspectRatio: assets.image.width / assets.image.height, hasAlpha: true },
+    cutout: cutoutField(assets.image, true, assets.crop),
   };
 }

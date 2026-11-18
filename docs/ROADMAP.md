@@ -148,12 +148,12 @@ config.**
 
 ## Follow-ups found during review
 
-- ☐ **F1 Record the cutout crop.** Store the crop rectangle and scale on `Item.cutout` when a cutout
+- ☑ **F1 Record the cutout crop.** Store the crop rectangle and scale on `Item.cutout` when a cutout
   is made (optional field, no migration), so touch-up can line the cutout up with the original
   directly. Today it recovers the placement by colour matching (`core/image/align.ts`), which can
   fail on low-contrast photos and briefly blocks the main thread. Keep alignment as the fallback
   for older items.
-- ☐ **F2 Capture-guide shoe outline.** The shoe-pair guide reads as two blobs; draw a clearer pair.
+- ☑ **F2 Capture-guide shoe outline.** The shoe-pair guide reads as two blobs; draw a clearer pair.
 - ☐ **F3 Real-device pass.** On an iPhone and an Android phone: background-removal speed and memory,
   touch gestures in Mix and touch-up, Add to Home Screen, safe-area insets, real Open-Meteo data.
 

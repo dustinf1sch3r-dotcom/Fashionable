@@ -142,8 +142,24 @@ export interface Item extends Entity {
     aspectRatio: number;
     /** False when background removal was unavailable and the cutout is the plain photo. */
     hasAlpha: boolean;
+    /**
+     * Where the cutout came from: the rectangle of the ORIGINAL photo (stored original image,
+     * pixels, origin top-left) that the cutout covers, and `scale`, the factor from original
+     * pixels to stored-cutout pixels (cutout px = (original px - x/y) * scale). Optional: items
+     * made before it was recorded have none and touch-up falls back to `core/image/align.ts`.
+     */
+    crop?: CutoutCrop;
   };
   fitAdjust?: FitAdjust;
+}
+
+/** See `Item.cutout.crop`. All numbers finite, `width` / `height` / `scale` above 0. */
+export interface CutoutCrop {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  scale: number;
 }
 
 // ── Outfits, history, feedback ──────────────────────────────────────────────────────────────

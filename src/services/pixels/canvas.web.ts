@@ -1,4 +1,5 @@
-import { applyMaskAlpha, fitWithin, resizeMask, trimToAlpha } from '@/core/image';
+import { applyMaskAlpha, cropFromTrim, fitWithin, resizeMask, trimToAlpha } from '@/core/image';
+import type { CutoutCrop } from '@/core/model/types';
 
 /** Decodes an image URI (object URL, data URL or http URL) into an element. */
 export function loadImage(uri: string): Promise<HTMLImageElement> {
@@ -55,6 +56,8 @@ export interface MaskedCutout {
   blob: Blob;
   width: number;
   height: number;
+  /** The part of the photo the cutout covers, in the photo's own pixels. */
+  crop: CutoutCrop;
 }
 
 /**
@@ -81,5 +84,15 @@ export async function applyMaskToImage(
   const out = makeCanvas(size.width, size.height);
   const outCtx = context2d(out);
   outCtx.drawImage(canvas, rect.x, rect.y, rect.width, rect.height, 0, 0, size.width, size.height);
-  return { blob: await canvasToPng(out), width: size.width, height: size.height };
+  return {
+    blob: await canvasToPng(out),
+    width: size.width,
+    height: size.height,
+    crop: cropFromTrim(
+      rect,
+      work,
+      { width: img.naturalWidth, height: img.naturalHeight },
+      size.width,
+    ),
+  };
 }

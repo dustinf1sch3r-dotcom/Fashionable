@@ -97,7 +97,13 @@ interface Item extends Entity {
   pricePaid?: number;
   purchasedOn?: ISODate;
   images: { originalId: ID; cutoutId: ID; thumbId: ID };
-  cutout: { aspectRatio: number; hasAlpha: boolean }; // width / height of the trimmed cutout
+  cutout: {
+    aspectRatio: number; // width / height of the trimmed cutout
+    hasAlpha: boolean;
+    crop?: { x: number; y: number; width: number; height: number; scale: number };
+    // crop: rectangle of the ORIGINAL photo the cutout covers (original px) and the factor from
+    // original px to cutout px. Optional; older items have none (touch-up then colour-matches).
+  };
   fitAdjust?: FitAdjust; // { dx, dy, scale, rotation } in mannequin units
 }
 

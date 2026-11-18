@@ -30,7 +30,13 @@ interface Size {
 }
 
 /** Web editor: the cutout on a checkerboard that you erase from and restore into with a brush. */
-export function CutoutEditor({ originalUri, cutoutUri, onCancel, onDone }: CutoutEditorProps) {
+export function CutoutEditor({
+  originalUri,
+  cutoutUri,
+  crop,
+  onCancel,
+  onDone,
+}: CutoutEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sessionRef = useRef<TouchupSession | null>(null);
   const pointerRef = useRef<number | null>(null);
@@ -47,7 +53,7 @@ export function CutoutEditor({ originalUri, cutoutUri, onCancel, onDone }: Cutou
     const canvas = canvasRef.current;
     if (!canvas) return undefined;
     getServices()
-      .touchup.open({ originalUri, cutoutUri, canvas })
+      .touchup.open({ originalUri, cutoutUri, crop, canvas })
       .then((opened) => {
         if (cancelled) {
           opened.dispose();
@@ -64,7 +70,7 @@ export function CutoutEditor({ originalUri, cutoutUri, onCancel, onDone }: Cutou
       sessionRef.current?.dispose();
       sessionRef.current = null;
     };
-  }, [originalUri, cutoutUri]);
+  }, [originalUri, cutoutUri, crop]);
 
   useEffect(() => {
     session?.setGhost(mode === 'restore');

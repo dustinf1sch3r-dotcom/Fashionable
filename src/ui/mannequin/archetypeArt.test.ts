@@ -1,5 +1,5 @@
 import { archetypeById } from '@/core/gaps';
-import { garmentArtUri, withArtAspect } from './archetypeArt';
+import { categoryOutline, garmentArtUri, withArtAspect } from './archetypeArt';
 
 const sneakers = archetypeById('white-sneakers')?.item;
 const jeans = archetypeById('dark-jeans')?.item;
@@ -17,5 +17,13 @@ describe('archetype art', () => {
     expect(garmentArtUri(sneakers)).not.toBe(garmentArtUri(jeans));
     expect(withArtAspect(sneakers).cutout.aspectRatio).toBeGreaterThan(1);
     expect(withArtAspect(jeans).cutout.aspectRatio).toBeLessThan(1);
+  });
+  it('draws shoes as a pair of side profiles: two outlines, each with a sole-line slot', () => {
+    const { path, aspect } = categoryOutline('shoes');
+    expect(aspect).toBe(1.6);
+    // Two shoes, each an outline plus a sole slot: four closed sub-paths.
+    expect(path.match(/Z/g)).toHaveLength(4);
+    expect(path.match(/M/g)).toHaveLength(4);
+    expect(garmentArtUri(sneakers)).toContain(path);
   });
 });
