@@ -20,6 +20,8 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${PORT}`,
     trace: 'off',
+    // Evidence for intermittent CI failures; cheap because it is only taken when a test fails.
+    screenshot: 'only-on-failure',
   },
   projects: [
     {
